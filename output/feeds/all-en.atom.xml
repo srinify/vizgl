@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati</title><link href="/" rel="alternate"></link><link href="/feeds/all-en.atom.xml" rel="self"></link><id>/</id><updated>2021-12-24T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 1 (Python Setup)</title><link href="/apache-superset-from-scratch-day-1-python-setup.html" rel="alternate"></link><published>2021-12-24T10:20:00-05:00</published><updated>2021-12-24T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-24:/apache-superset-from-scratch-day-1-python-setup.html</id><summary type="html">&lt;p&gt;I'm on a quest, to understand and map out as much of the &lt;a href="https://superset.apache.org/"&gt;Apache Superset&lt;/a&gt; code base as I can. In my &lt;a href="https://linkedin.com/in/srinivasakadamati"&gt;day job&lt;/a&gt;, I have the opportunity to &lt;em&gt;use&lt;/em&gt; Superset on a daily basis but I'm not intimately familiar with the code paths themselves. This series will revolve around …&lt;/p&gt;</summary><content type="html">&lt;p&gt;I'm on a quest, to understand and map out as much of the &lt;a href="https://superset.apache.org/"&gt;Apache Superset&lt;/a&gt; code base as I can. In my &lt;a href="https://linkedin.com/in/srinivasakadamati"&gt;day job&lt;/a&gt;, I have the opportunity to &lt;em&gt;use&lt;/em&gt; Superset on a daily basis but I'm not intimately familiar with the code paths themselves. This series will revolve around the process on a M1 Macbook Air, but should generalize to most *nix systems.&lt;/p&gt;
+&lt;p&gt;My goal is to make noticeable progress on a daily basis. With the preamble out of the way, let's start!&lt;/p&gt;
+&lt;h3&gt;Contributing.md&lt;/h3&gt;
+&lt;p&gt;The Superset codebase is large; where does one even begin? For new code bases, I generally like alternating between:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;em&gt;breadth&lt;/em&gt;: starting with an overview of the development / contributor's guide&lt;/li&gt;
+&lt;li&gt;&lt;em&gt;depth&lt;/em&gt;: recursively going through each component &amp;amp; sub-component&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;For breadth, I'll start with the &lt;a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development"&gt;Setup Local Environment for Development&lt;/a&gt; section from CONTRIBUTING.MD.&lt;/p&gt;
+&lt;h3&gt;Python 3.8&lt;/h3&gt;
+&lt;p&gt;Python 3.7.x or 3.8.x are recommended for running the Superset backend. I'm on a Mac, and prefer to leave the default &lt;code&gt;python&lt;/code&gt; that ships with the operating system to 2.7.x. Instead, I'll use &lt;a href="https://brew.sh/"&gt;Homebrew&lt;/a&gt; to install Python 3.8:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;brew&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;install&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;python&lt;/span&gt;&lt;span class="mf"&gt;@3.8&lt;/span&gt;&lt;span class="w"&gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now, both the &lt;code&gt;python3&lt;/code&gt; and &lt;code&gt;pip3&lt;/code&gt; commands work as expected (independent of the &lt;code&gt;python&lt;/code&gt; and &lt;code&gt;pip&lt;/code&gt; commands)!&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;python3 --version&lt;/code&gt; returns&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;Python 3.8.12&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;pip3 --version&lt;/code&gt; returns&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;pip 21.2.4 from /opt/homebrew/lib/python3.8/site-packages/pip (python 3.8)&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Virtualenv&lt;/h3&gt;
+&lt;p&gt;Now time to create a Python virtual environment. Virtual environment is really a sandbox for your Python libraries that lives within a specific folder / project. This workflow gives you a few benefits:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Virtual environment lives completely independent of the global Python sandbox&lt;/li&gt;
+&lt;li&gt;It's super quick and easy to delete all of the project specific Python libraries and re-install, as an escape hatch&lt;/li&gt;
+&lt;li&gt;Less time wasted (not zero sadly) dealing with version / dependency conflicts&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Are there any downsides?&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The main one is increased storage requirements, because every Python project on your computer has its own copies of similar libraries&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;First, let me install &lt;code&gt;virtualenv&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;pip3 install virtualenv
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Next, let's give our virtual environment a name. The &lt;code&gt;virtualenv&lt;/code&gt; creates a folder within your project folder and stuffs all of the Python libraries you install there. So we're really trying to decide on the &lt;em&gt;name&lt;/em&gt; of this folder.&lt;/p&gt;
+&lt;p&gt;The CONTRIBUTING.MD file in the Superset repo suggests naming it &lt;code&gt;venv&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;python3 -m venv venv
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;ul&gt;
+&lt;li&gt;The first &lt;code&gt;venv&lt;/code&gt; is short-hand for &lt;code&gt;virtualenv&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;The second &lt;code&gt;venv&lt;/code&gt; refers to the name of the folder we're creating (&lt;code&gt;../superset/venv/&lt;/code&gt;)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Why should we name it &lt;code&gt;venv/&lt;/code&gt;? One hint is in the &lt;code&gt;.gitignore&lt;/code&gt; file, which &lt;a href="https://git-scm.com/docs/gitignore"&gt;specifies files &amp;amp; folder paths to ignore in version control&lt;/a&gt;. This means that each user can have their own local state and those details won't get checked into version control. &lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;.gitignore&lt;/code&gt; file itself &lt;em&gt;is&lt;/em&gt; version controlled though. So this file provides a "universal" agreemenet between all of the contributors to Superset that these files should not be checked into version control. Let's search for any string values containing "env" in the &lt;code&gt;.gitignore&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;cat .gitignore | grep &amp;#39;env&amp;#39;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This returns:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="na"&gt;.env&lt;/span&gt;
+&lt;span class="na"&gt;.envrc&lt;/span&gt;
+&lt;span class="nf"&gt;env&lt;/span&gt;
+&lt;span class="nf"&gt;venv&lt;/span&gt;&lt;span class="p"&gt;*&lt;/span&gt;
+&lt;span class="nf"&gt;env_py3&lt;/span&gt;
+&lt;span class="nf"&gt;envpy3&lt;/span&gt;
+&lt;span class="nf"&gt;env36&lt;/span&gt;
+&lt;span class="nf"&gt;venv&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;While some open source projects use the &lt;code&gt;.venv/&lt;/code&gt; convention for virtualenv, the Superset one uses &lt;code&gt;venv&lt;/code&gt; it seems. So this means:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;we can party in our local &lt;code&gt;venv/&lt;/code&gt; and none of those changes will make it into any code PR's we may want to make&lt;/li&gt;
+&lt;li&gt;if we want to use &lt;code&gt;.venv/&lt;/code&gt; instead, the git version control system will detect a change&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Let's stick to the community convention, and run the suggested command:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;python3 -m venv venv
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If we run &lt;code&gt;ls&lt;/code&gt; while within the &lt;code&gt;superset/&lt;/code&gt; folder, we'll see &lt;code&gt;venv&lt;/code&gt; listed as a folder. Success!&lt;/p&gt;
+&lt;h3&gt;Python Dependencies&lt;/h3&gt;
+&lt;p&gt;Usually, the Python requirements are specified in a &lt;code&gt;requirements.txt&lt;/code&gt; file. In the case of Superset, we're blessed with a folder of &lt;code&gt;.in&lt;/code&gt; and &lt;code&gt;.txt&lt;/code&gt; files. There's a lot we could explore and unpack here, but I'm going to focus on getting everything setup first.&lt;/p&gt;
+&lt;p&gt;If we look to CONTRIBUTING.MD, we see:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;pip install -r requirements/testing.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If we open that file, we see something that resembles a standard &lt;code&gt;requirements.txt&lt;/code&gt; file, but with this header:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;# This file is autogenerated by pip-compile-multi
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I've made a mental note to investigate &amp;amp; explore &lt;code&gt;pip-compile-multi&lt;/code&gt; later, a library for compiling multiple requirement files. For now, let's run the following command to install the dependencies:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;pip3 install -r requirements/testing.txt
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;Error 1: MySQL&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;I ran into this issue with red scary error text while on my M1 Macbook computer:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;Collecting&lt;/span&gt; &lt;span class="n"&gt;mysqlclient&lt;/span&gt;&lt;span class="o"&gt;==&lt;/span&gt;&lt;span class="mf"&gt;2.1.0&lt;/span&gt;
+  &lt;span class="n"&gt;Using&lt;/span&gt; &lt;span class="n"&gt;cached&lt;/span&gt; &lt;span class="n"&gt;mysqlclient&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mf"&gt;2.1.0&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;tar&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gz&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;87&lt;/span&gt; &lt;span class="n"&gt;kB&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;Command&lt;/span&gt; &lt;span class="n"&gt;errored&lt;/span&gt; &lt;span class="n"&gt;out&lt;/span&gt; &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;exit&lt;/span&gt; &lt;span class="n"&gt;status&lt;/span&gt; &lt;span class="mi"&gt;1&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+     &lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;homebrew&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;opt&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;python&lt;/span&gt;&lt;span class="o"&gt;@&lt;/span&gt;&lt;span class="mf"&gt;3.8&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="nb"&gt;bin&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;python3&lt;/span&gt;&lt;span class="mf"&gt;.8&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;c&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;import io, os, sys, setuptools, tokenize; sys.argv[0] = &amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;/private/var/folders/6d/f0fzvlyn6sd58q5rmx6s6df00000gn/T/pip-install-6c548wua/mysqlclient_a8c054d3233d4d00acb42d6a6bf2a562/setup.py&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;; __file__=&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;/private/var/folders/6d/f0fzvlyn6sd58q5rmx6s6df00000gn/T/pip-install-6c548wua/mysqlclient_a8c054d3233d4d00acb42d6a6bf2a562/setup.py&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;;f = getattr(tokenize, &amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;open&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;, open)(__file__) if os.path.exists(__file__) else io.StringIO(&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;from setuptools import setup; setup()&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;);code = f.read().replace(&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\r\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;, &amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;);f.close();exec(compile(code, __file__, &amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;exec&amp;#39;&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&amp;#39;&amp;quot;&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;))&amp;#39;&lt;/span&gt; &lt;span class="n"&gt;egg_info&lt;/span&gt; &lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="n"&gt;egg&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;base&lt;/span&gt; &lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;private&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;var&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;folders&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="mi"&gt;6&lt;/span&gt;&lt;span class="n"&gt;d&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;f0fzvlyn6sd58q5rmx6s6df00000gn&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;T&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;pip&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;pip&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;egg&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;info&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mi"&gt;0735&lt;/span&gt;&lt;span class="n"&gt;tk4h&lt;/span&gt;
+
+     &lt;span class="n"&gt;WARNING&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;Discarding&lt;/span&gt; &lt;span class="n"&gt;https&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;//&lt;/span&gt;&lt;span class="n"&gt;files&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;pythonhosted&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;org&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;packages&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;de&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="mi"&gt;79&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;d02be3cb942afda6c99ca207858847572e38146eb73a7c4bfe3bdf154626&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;mysqlclient&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="mf"&gt;2.1.0&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;tar&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;gz&lt;/span&gt;&lt;span class="c1"&gt;#sha256=973235686f1b720536d417bf0a0d39b4ab3d5086b2b6ad5e6752393428c02b12 (from https://pypi.org/simple/mysqlclient/) (requires-python:&amp;gt;=3.5). Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.&lt;/span&gt;
+    &lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;Could&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="n"&gt;find&lt;/span&gt; &lt;span class="n"&gt;a&lt;/span&gt; &lt;span class="n"&gt;version&lt;/span&gt; &lt;span class="n"&gt;that&lt;/span&gt; &lt;span class="n"&gt;satisfies&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;requirement&lt;/span&gt; &lt;span class="n"&gt;mysqlclient&lt;/span&gt;&lt;span class="o"&gt;==&lt;/span&gt;&lt;span class="mf"&gt;2.1.0&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;versions&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="mf"&gt;1.3.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.7&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.8&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.9&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.11&lt;/span&gt;&lt;span class="n"&gt;rc1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.11&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.12&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.13&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.3.14&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.0&lt;/span&gt;&lt;span class="n"&gt;rc1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.0&lt;/span&gt;&lt;span class="n"&gt;rc2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.0&lt;/span&gt;&lt;span class="n"&gt;rc3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.2&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;post1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.4&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.5&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;1.4.6&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.0.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.0.1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.0.2&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.0.3&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.1.0&lt;/span&gt;&lt;span class="n"&gt;rc1&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;2.1.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="n"&gt;ERROR&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;No&lt;/span&gt; &lt;span class="n"&gt;matching&lt;/span&gt; &lt;span class="n"&gt;distribution&lt;/span&gt; &lt;span class="n"&gt;found&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;mysqlclient&lt;/span&gt;&lt;span class="o"&gt;==&lt;/span&gt;&lt;span class="mf"&gt;2.1.0&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Some &lt;a href="https://stackoverflow.com/questions/66669728/trouble-installing-mysql-client-on-mac"&gt;StackOverflow sleuthing suggested&lt;/a&gt; that I needed to install MySQL server via homebrew so the installation process for the Python client library would work. So this may not be an M1 related issue after all:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;brew install mysql
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;&lt;strong&gt;Error 2: Postgres&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;While &lt;code&gt;mysql-client&lt;/code&gt; succeeded, pip now got stuck on postgres:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;Error&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="n"&gt;pg_config&lt;/span&gt; &lt;span class="n"&gt;executable&lt;/span&gt; &lt;span class="n"&gt;not&lt;/span&gt; &lt;span class="n"&gt;found&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;
+
+&lt;span class="n"&gt;pg_config&lt;/span&gt; &lt;span class="k"&gt;is&lt;/span&gt; &lt;span class="n"&gt;required&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;build&lt;/span&gt; &lt;span class="n"&gt;psycopg2&lt;/span&gt; &lt;span class="n"&gt;from&lt;/span&gt; &lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;  &lt;span class="n"&gt;Please&lt;/span&gt; &lt;span class="n"&gt;add&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;directory&lt;/span&gt;
+&lt;span class="n"&gt;containing&lt;/span&gt; &lt;span class="n"&gt;pg_config&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;$PATH&lt;/span&gt; &lt;span class="n"&gt;or&lt;/span&gt; &lt;span class="n"&gt;specify&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;full&lt;/span&gt; &lt;span class="n"&gt;executable&lt;/span&gt; &lt;span class="n"&gt;path&lt;/span&gt; &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt;
+&lt;span class="n"&gt;option&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+
+    &lt;span class="n"&gt;python&lt;/span&gt; &lt;span class="n"&gt;setup&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="na"&gt;py&lt;/span&gt; &lt;span class="n"&gt;build_ext&lt;/span&gt; &lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="n"&gt;pg&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="sr"&gt;/path/to/&lt;/span&gt;&lt;span class="n"&gt;pg_config&lt;/span&gt; &lt;span class="n"&gt;build&lt;/span&gt; &lt;span class="o"&gt;...&lt;/span&gt;
+
+&lt;span class="n"&gt;or&lt;/span&gt; &lt;span class="k"&gt;with&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;pg_config&lt;/span&gt; &lt;span class="n"&gt;option&lt;/span&gt; &lt;span class="k"&gt;in&lt;/span&gt; &lt;span class="s1"&gt;&amp;#39;setup.cfg&amp;#39;&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;
+
+&lt;span class="n"&gt;If&lt;/span&gt; &lt;span class="n"&gt;you&lt;/span&gt; &lt;span class="n"&gt;prefer&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;avoid&lt;/span&gt; &lt;span class="n"&gt;building&lt;/span&gt; &lt;span class="n"&gt;psycopg2&lt;/span&gt; &lt;span class="n"&gt;from&lt;/span&gt; &lt;span class="n"&gt;source&lt;/span&gt;&lt;span class="o"&gt;,&lt;/span&gt; &lt;span class="n"&gt;please&lt;/span&gt; &lt;span class="n"&gt;install&lt;/span&gt; &lt;span class="n"&gt;the&lt;/span&gt; &lt;span class="n"&gt;PyPI&lt;/span&gt;
+&lt;span class="s1"&gt;&amp;#39;psycopg2-binary&amp;#39;&lt;/span&gt; &lt;span class="k"&gt;package&lt;/span&gt; &lt;span class="nn"&gt;instead.&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Let's check out &lt;a href="https://stackoverflow.com/questions/20170895/mac-virtualenv-pip-postgresql-error-pg-config-executable-not-found"&gt;Stack Overflow again&lt;/a&gt;. I like using the &lt;a href="https://postgresapp.com/"&gt;Postgres Mac app&lt;/a&gt;, which contains a &lt;code&gt;pg_config&lt;/code&gt; executable. So I'm going to &lt;/p&gt;
+&lt;p&gt;I'm going to move forward with finding the path to the &lt;code&gt;pg_config&lt;/code&gt; file and add it to my PATH. I'll first crack open the Postgres.app folder:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Opening Postgres.app Folder" src="/images/app_show_package_contents.png"&gt;&lt;/p&gt;
+&lt;p&gt;After jumping through folders, I found the &lt;code&gt;pg_config&lt;/code&gt; executable. As suggested in StackOverflow, I'm going to add that executable's folder to my PATH:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;export&lt;/span&gt; &lt;span class="n"&gt;PATH&lt;/span&gt;&lt;span class="o"&gt;=$&lt;/span&gt;&lt;span class="n"&gt;PATH&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;Applications&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;Postgres&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;app&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;Contents&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;Versions&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="mi"&gt;14&lt;/span&gt;&lt;span class="o"&gt;/&lt;/span&gt;&lt;span class="n"&gt;bin&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now when I &lt;code&gt;pip3 install -r requirements/testing.txt&lt;/code&gt; again, everything works beautifully!&lt;/p&gt;
+&lt;h3&gt;Editable Superset&lt;/h3&gt;
+&lt;p&gt;Now, we're ready to install Superset in "editable" mode. Editable mode lets us modify and test code changes in Superset quickly, which is ideal when developing features or fixing bugs.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;pip3 install -e .
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;To test the installation, run the &lt;code&gt;superset&lt;/code&gt; command and the Superset CLI should appear:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset CLI" src="/images/superset_cli2.png"&gt;&lt;/p&gt;
+&lt;h3&gt;Next Up&lt;/h3&gt;
+&lt;p&gt;That's it for Day 1. In Day 2, I'll play with setting up the metadata database, creating roles &amp;amp; permissions, loading example data, and starting the backend server. &lt;/p&gt;
+&lt;p&gt;Stay tuned! 📺&lt;/p&gt;</content><category term="Review"></category></entry></feed>
