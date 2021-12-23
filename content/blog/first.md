@@ -1,5 +1,5 @@
 Title: Apache Superset from Scratch: Day 1 (Python Setup)
-Date: 2021-12-24 10:20
+Date: 2021-12-23 10:20
 Category: Review
 
 I'm on a quest, to understand and map out as much of the [Apache Superset](https://superset.apache.org/) code base as I can. In my [day job](https://linkedin.com/in/srinivasakadamati), I have the opportunity to _use_ Superset on a daily basis but I'm not intimately familiar with the code paths themselves. This series will revolve around the process on a M1 Macbook Air, but should generalize to most \*nix systems.
@@ -185,4 +185,4 @@ To test the installation, run the `superset` command and the Superset CLI should
 
 That's it for Day 1. In Day 2, I'll play with setting up the metadata database, creating roles & permissions, loading example data, and starting the backend server. 
 
-Stay tuned! 📺
+If you want to follow along, use the [RSS feed](/feeds/all.atom.xml). Stay tuned! 📺
