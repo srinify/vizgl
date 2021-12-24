@@ -12,7 +12,7 @@ superset db upgrade
 
 Before we do that, I want to get more familiar with the Superset CLI. If you recall from the last post, running `superset` in the command line exposes a number of interesting commands we could run:
 
-![Superset CLI]({filename}/images/superset_cli2.png)
+![Superset CLI]({static}/images/superset_cli2.png)
 
 Some interesting commands that stick out:
 
@@ -54,11 +54,11 @@ Neat! I know that Superset is built on top of Flask App Builder (or FAB for shor
 
 Let's ask the CLI to list out all of the available commands within `superset db`:
 
-![Superset CLI db]({filename}/images/superset_cli_db.png)
+![Superset CLI db]({static}/images/superset_cli_db.png)
 
 Neat! Let's run `superset db upgrade` now. As expected, a bunch of historical database migrations were run and applied.
 
-![Superset db upgrade]({filename}/images/superset_db_upgrade.png)
+![Superset db upgrade]({static}/images/superset_db_upgrade.png)
 
 ### Where does the metadata database live?
 
@@ -80,11 +80,11 @@ superset fab create-admin
 
 Before we run the full command, what CLI commands are available within the `superset fab` namespace?
 
-![Superset CLI fab]({filename}/images/superset_cli_fab.png)
+![Superset CLI fab]({static}/images/superset_cli_fab.png)
 
 The commands here let us create admin users, create regular users, create database objects, reset a user's password, and more. Let's create an admin user by running `superset fab create-admin`. To keep this simple during exploration, I just answered **admin** for every line in the wizard:
 
-![Superset fab create-admin]({filename}/images/fab_create_admin.png)
+![Superset fab create-admin]({static}/images/fab_create_admin.png)
 
 We now have an admin username (**admin**) and password (**admin**) combination for logging in to Superset, when the time is right. Next, let's create the rest of the roles and permissions:
 
@@ -112,11 +112,11 @@ FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
 
 By default, Flask will run on port 8088 but we can change the port number by changing the value we put in the invocation.
 
-![Flask Server]({filename}/images/flask_server.png)
+![Flask Server]({static}/images/flask_server.png)
 
 We're shown a somewhat incomplete and outdated login screen. This is interesting.
 
-![Superset Login]({filename}/images/superset_login.png)
+![Superset Login]({static}/images/superset_login.png)
 
 My guess here is that somewhere, the frontend assets need to be built. This seems to align with the comments listed before the flask server initialization instructions:
 

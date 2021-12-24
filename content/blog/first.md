@@ -159,7 +159,7 @@ Let's check out [Stack Overflow again](https://stackoverflow.com/questions/20170
 
 I'm going to move forward with finding the path to the `pg_config` file and add it to my PATH. I'll first crack open the Postgres.app folder:
 
-![Opening Postgres.app Folder]({filename}/images/app_show_package_contents.png)
+![Opening Postgres.app Folder]({static}/images/app_show_package_contents.png)
 
 After jumping through folders, I found the `pg_config` executable. As suggested in StackOverflow, I'm going to add that executable's folder to my PATH:
 
@@ -179,7 +179,7 @@ pip3 install -e .
 
 To test the installation, run the `superset` command and the Superset CLI should appear:
 
-![Superset CLI]({filename}/images/superset_cli2.png)
+![Superset CLI]({static}/images/superset_cli2.png)
 
 ### Next Up
 
