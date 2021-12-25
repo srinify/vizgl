@@ -69,6 +69,101 @@
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;superset&lt;/span&gt; &lt;span class="nb"&gt;load&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;examples&lt;/span&gt;
 &lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
 
+&lt;p&gt;What all is loaded? How does this actually work? For fun, let's dive into the functions &amp;amp; relevant codepaths. Let's start with the function definition for &lt;code&gt;superset load-examples&lt;/code&gt;. To follow Pythonic syntax, we need to instead look for &lt;code&gt;load_examples()&lt;/code&gt; in &lt;code&gt;superset/cli.py&lt;/code&gt;. Here's the function declaration:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nd"&gt;@with_appcontext&lt;/span&gt;
+&lt;span class="nd"&gt;@superset&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;command&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;span class="nd"&gt;@click&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;option&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;--load-test-data&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;-t&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;is_flag&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;help&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Load additional test data&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nd"&gt;@click&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;option&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;--load-big-data&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;-b&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;is_flag&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;help&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Load additional big data&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nd"&gt;@click&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;option&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;--only-metadata&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;-m&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;is_flag&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;help&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Only load metadata, skip actual data&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="nd"&gt;@click&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;option&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;--force&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;-f&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;is_flag&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="kc"&gt;True&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;help&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Force load data even if table already exists&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="k"&gt;def&lt;/span&gt; &lt;span class="nf"&gt;load_examples&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+    &lt;span class="n"&gt;load_test_data&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;bool&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;load_big_data&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;bool&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;only_metadata&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;bool&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+    &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb"&gt;bool&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="kc"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="kc"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="sd"&gt;&amp;quot;&amp;quot;&amp;quot;Loads a set of Slices and Dashboards and a supporting dataset&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="n"&gt;load_examples_run&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;load_test_data&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;load_big_data&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;only_metadata&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;While most of the code focuses on the possible CLI options &amp;amp; function parameters, the actual function definition is a single line:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;load_examples_run&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;load_test_data&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;load_big_data&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;only_metadata&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If we jump to that function declaration, it's much much longer. This must be where the meat of the logic is for loading examples. Here's a screenshot of just the first half!&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Load Examples Run" src="/images/load_examples_run.png"&gt;&lt;/p&gt;
+&lt;p&gt;This line looks interesting:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;superset&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;examples&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;If I poke through the file structure for Superset, I find a folder dedicated to examples (&lt;code&gt;superset/examples&lt;/code&gt;). The &lt;code&gt;__init__.py&lt;/code&gt; file for this folder defines each function mapping:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Examples Directory" src="/images/examples_directory.png"&gt;&lt;/p&gt;
+&lt;p&gt;Cool! What should I look at next?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;examples&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;load_css_templates&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Superset ships with two default CSS templates for dashboards, so this code is likely how that data is loaded. Let's crack open the &lt;code&gt;def load_css_tesmplates()&lt;/code&gt; function, which lives in &lt;code&gt;superset/examples/load_css_templates.py&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Load CSS Templates" src="/images/load_css_templates.png"&gt;&lt;/p&gt;
+&lt;p&gt;Each CSS template is loaded one after another. Let's step through the key parts of the code to better understand it.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;obj = db.session.query(CssTemplate).filter_by(template_name=&amp;quot;Flat&amp;quot;).first()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Here we see the &lt;code&gt;db&lt;/code&gt; object again, from earlier. Unsurprisingly, there's a matching import statement for it:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;superset&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;db&lt;/span&gt;
+&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;superset.models.core&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;CssTemplate&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The CssTemplate data model itself looks very simple, as defined in &lt;code&gt;superset/models/core.py&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="n"&gt;CssTemplate&lt;/span&gt;(&lt;span class="n"&gt;Model&lt;/span&gt;, &lt;span class="n"&gt;AuditMixinNullable&lt;/span&gt;):
+
+    &lt;span class="s"&gt;&amp;quot;&amp;quot;&amp;quot;CSS templates for dashboards&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="n"&gt;__tablename__&lt;/span&gt; = &lt;span class="s"&gt;&amp;quot;css_templates&amp;quot;&lt;/span&gt;
+    &lt;span class="nb"&gt;id&lt;/span&gt; = &lt;span class="n"&gt;Column&lt;/span&gt;(&lt;span class="n"&gt;Integer&lt;/span&gt;, &lt;span class="n"&gt;primary_key&lt;/span&gt;=&lt;span class="nb"&gt;True&lt;/span&gt;)
+    &lt;span class="n"&gt;template_name&lt;/span&gt; = &lt;span class="n"&gt;Column&lt;/span&gt;(&lt;span class="n"&gt;String&lt;/span&gt;(&lt;span class="mi"&gt;250&lt;/span&gt;))
+    &lt;span class="n"&gt;css&lt;/span&gt; = &lt;span class="n"&gt;Column&lt;/span&gt;(&lt;span class="n"&gt;Text&lt;/span&gt;, &lt;span class="k"&gt;default&lt;/span&gt;=&lt;span class="s"&gt;&amp;quot;&amp;quot;&lt;/span&gt;)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;As a mental note to myself, this table is named &lt;strong&gt;css_templates&lt;/strong&gt; in the metadata database.&lt;/p&gt;
+&lt;p&gt;The rest of the code &lt;em&gt;smells&lt;/em&gt; a lot like SQLAlchemy syntax:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;db.session.query(CssTemplate).filter_by(template_name=&amp;quot;Flat&amp;quot;).first()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;While I'm not too familiar with the Superset data model yet, this code likely:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Attaches to a SQLAlchemy session / transaction&lt;/li&gt;
+&lt;li&gt;Queries the metadata database, searching for a matching CssTemplate object with the name &lt;strong&gt;Flat&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;And the &lt;code&gt;first()&lt;/code&gt; at the end is probably just for good measure, in case there are duplicate results&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The goal likely here is to search for an existing entry in the metadata database for the &lt;strong&gt;Flat&lt;/strong&gt; CSS template. If an existing entry in the metadata database wasn't found, a new CssTemplate object is instantiated for the purpose of inserting later:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nv"&gt;not&lt;/span&gt; &lt;span class="nv"&gt;obj&lt;/span&gt;:
+    &lt;span class="nv"&gt;obj&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;CssTemplate&lt;/span&gt;&lt;span class="ss"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;template_name&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;Flat&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="ss"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, the CSS itself is defined as a hard-coded string (shortened extensively below):&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nt"&gt;css&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nt"&gt;textwrap&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="nc"&gt;dedent&lt;/span&gt;&lt;span class="o"&gt;(&lt;/span&gt;
+    &lt;span class="s2"&gt;&amp;quot;&amp;quot;&amp;quot;\&lt;/span&gt;
+&lt;span class="s2"&gt;    .navbar {&lt;/span&gt;
+&lt;span class="s2"&gt;        transition: opacity 0.5s ease;&lt;/span&gt;
+&lt;span class="s2"&gt;        opacity: 0.05;&lt;/span&gt;
+&lt;span class="s2"&gt;    }&lt;/span&gt;
+&lt;span class="s2"&gt;    ....&lt;/span&gt;
+&lt;span class="s2"&gt;    &amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="o"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Finally, the string is set to the instianted CssTemplate object's &lt;code&gt;css&lt;/code&gt; column and inserted into the metadata database:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;obj.css = css
+    db.session.merge(obj)
+    db.session.commit()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This whole process is then repeated to add the &lt;strong&gt;Courier Black&lt;/strong&gt; CSS template.&lt;/p&gt;
+&lt;p&gt;Phew! This was just the CSS templates. No example datasets or example dashboards yet. Because I'm running out of time today, I'll circle back to the code paths for those a later day.&lt;/p&gt;
 &lt;h3&gt;Starting Flask Server&lt;/h3&gt;
 &lt;p&gt;The last step now is to fire up the Flask server and see how Superset looks in the web browser.&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;FLASK_ENV&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;development&lt;/span&gt; &lt;span class="n"&gt;superset&lt;/span&gt; &lt;span class="n"&gt;run&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt; &lt;span class="mi"&gt;8088&lt;/span&gt; &lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="n"&gt;with&lt;/span&gt;&lt;span class="o"&gt;-&lt;/span&gt;&lt;span class="n"&gt;threads&lt;/span&gt; &lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="n"&gt;reload&lt;/span&gt; &lt;span class="o"&gt;--&lt;/span&gt;&lt;span class="n"&gt;debugger&lt;/span&gt;

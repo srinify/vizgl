@@ -132,6 +132,101 @@
 <div class="highlight"><pre><span></span><code><span class="n">superset</span> <span class="nb">load</span><span class="o">-</span><span class="n">examples</span>
 </code></pre></div>
 
+<p>What all is loaded? How does this actually work? For fun, let's dive into the functions &amp; relevant codepaths. Let's start with the function definition for <code>superset load-examples</code>. To follow Pythonic syntax, we need to instead look for <code>load_examples()</code> in <code>superset/cli.py</code>. Here's the function declaration:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@with_appcontext</span>
+<span class="nd">@superset</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--load-test-data&quot;</span><span class="p">,</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Load additional test data&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--load-big-data&quot;</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Load additional big data&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--only-metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;-m&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only load metadata, skip actual data&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--force&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force load data even if table already exists&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">load_examples</span><span class="p">(</span>
+    <span class="n">load_test_data</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">load_big_data</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">only_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Loads a set of Slices and Dashboards and a supporting dataset&quot;&quot;&quot;</span>
+    <span class="n">load_examples_run</span><span class="p">(</span><span class="n">load_test_data</span><span class="p">,</span> <span class="n">load_big_data</span><span class="p">,</span> <span class="n">only_metadata</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+</code></pre></div>
+
+<p>While most of the code focuses on the possible CLI options &amp; function parameters, the actual function definition is a single line:</p>
+<div class="highlight"><pre><span></span><code><span class="n">load_examples_run</span><span class="p">(</span><span class="n">load_test_data</span><span class="p">,</span> <span class="n">load_big_data</span><span class="p">,</span> <span class="n">only_metadata</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+</code></pre></div>
+
+<p>If we jump to that function declaration, it's much much longer. This must be where the meat of the logic is for loading examples. Here's a screenshot of just the first half!</p>
+<p><img alt="Load Examples Run" src="/images/load_examples_run.png"></p>
+<p>This line looks interesting:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset</span> <span class="kn">import</span> <span class="n">examples</span>
+</code></pre></div>
+
+<p>If I poke through the file structure for Superset, I find a folder dedicated to examples (<code>superset/examples</code>). The <code>__init__.py</code> file for this folder defines each function mapping:</p>
+<p><img alt="Examples Directory" src="/images/examples_directory.png"></p>
+<p>Cool! What should I look at next?</p>
+<div class="highlight"><pre><span></span><code><span class="n">examples</span><span class="o">.</span><span class="n">load_css_templates</span><span class="p">()</span>
+</code></pre></div>
+
+<p>Superset ships with two default CSS templates for dashboards, so this code is likely how that data is loaded. Let's crack open the <code>def load_css_tesmplates()</code> function, which lives in <code>superset/examples/load_css_templates.py</code>.</p>
+<p><img alt="Load CSS Templates" src="/images/load_css_templates.png"></p>
+<p>Each CSS template is loaded one after another. Let's step through the key parts of the code to better understand it.</p>
+<div class="highlight"><pre><span></span><code>obj = db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre></div>
+
+<p>Here we see the <code>db</code> object again, from earlier. Unsurprisingly, there's a matching import statement for it:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset</span> <span class="kn">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">superset.models.core</span> <span class="kn">import</span> <span class="n">CssTemplate</span>
+</code></pre></div>
+
+<p>The CssTemplate data model itself looks very simple, as defined in <code>superset/models/core.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="n">CssTemplate</span>(<span class="n">Model</span>, <span class="n">AuditMixinNullable</span>):
+
+    <span class="s">&quot;&quot;&quot;CSS templates for dashboards&quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> = <span class="s">&quot;css_templates&quot;</span>
+    <span class="nb">id</span> = <span class="n">Column</span>(<span class="n">Integer</span>, <span class="n">primary_key</span>=<span class="nb">True</span>)
+    <span class="n">template_name</span> = <span class="n">Column</span>(<span class="n">String</span>(<span class="mi">250</span>))
+    <span class="n">css</span> = <span class="n">Column</span>(<span class="n">Text</span>, <span class="k">default</span>=<span class="s">&quot;&quot;</span>)
+</code></pre></div>
+
+<p>As a mental note to myself, this table is named <strong>css_templates</strong> in the metadata database.</p>
+<p>The rest of the code <em>smells</em> a lot like SQLAlchemy syntax:</p>
+<div class="highlight"><pre><span></span><code>db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre></div>
+
+<p>While I'm not too familiar with the Superset data model yet, this code likely:</p>
+<ul>
+<li>Attaches to a SQLAlchemy session / transaction</li>
+<li>Queries the metadata database, searching for a matching CssTemplate object with the name <strong>Flat</strong></li>
+<li>And the <code>first()</code> at the end is probably just for good measure, in case there are duplicate results</li>
+</ul>
+<p>The goal likely here is to search for an existing entry in the metadata database for the <strong>Flat</strong> CSS template. If an existing entry in the metadata database wasn't found, a new CssTemplate object is instantiated for the purpose of inserting later:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="nv">not</span> <span class="nv">obj</span>:
+    <span class="nv">obj</span> <span class="o">=</span> <span class="nv">CssTemplate</span><span class="ss">(</span><span class="nv">template_name</span><span class="o">=</span><span class="s2">&quot;</span><span class="s">Flat</span><span class="s2">&quot;</span><span class="ss">)</span>
+</code></pre></div>
+
+<p>Then, the CSS itself is defined as a hard-coded string (shortened extensively below):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">css</span> <span class="o">=</span> <span class="nt">textwrap</span><span class="p">.</span><span class="nc">dedent</span><span class="o">(</span>
+    <span class="s2">&quot;&quot;&quot;\</span>
+<span class="s2">    .navbar {</span>
+<span class="s2">        transition: opacity 0.5s ease;</span>
+<span class="s2">        opacity: 0.05;</span>
+<span class="s2">    }</span>
+<span class="s2">    ....</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="o">)</span>
+</code></pre></div>
+
+<p>Finally, the string is set to the instianted CssTemplate object's <code>css</code> column and inserted into the metadata database:</p>
+<div class="highlight"><pre><span></span><code>obj.css = css
+    db.session.merge(obj)
+    db.session.commit()
+</code></pre></div>
+
+<p>This whole process is then repeated to add the <strong>Courier Black</strong> CSS template.</p>
+<p>Phew! This was just the CSS templates. No example datasets or example dashboards yet. Because I'm running out of time today, I'll circle back to the code paths for those a later day.</p>
 <h3>Starting Flask Server</h3>
 <p>The last step now is to fire up the Flask server and see how Superset looks in the web browser.</p>
 <div class="highlight"><pre><span></span><code><span class="n">FLASK_ENV</span><span class="o">=</span><span class="n">development</span> <span class="n">superset</span> <span class="n">run</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span> <span class="o">--</span><span class="n">with</span><span class="o">-</span><span class="n">threads</span> <span class="o">--</span><span class="n">reload</span> <span class="o">--</span><span class="n">debugger</span>
@@ -153,7 +248,7 @@
   <hr class="small">
   <center>
   <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
-  <p>&copy; Copyright Srini Kadamati, 2021 to present</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
   </center>
 </footer>	</div><!-- container -->
 
