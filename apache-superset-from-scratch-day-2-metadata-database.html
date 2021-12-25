@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch: Day 2 (Metadata Database)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; Copyright Srini Kadamati, 2021 to present">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+
+  <!-- Feeds
+  ================================================== -->
+  <link rel="alternate" type="application/atom+xml" href="/feeds/all.atom.xml" title="Srini Kadamati Full Atom Feed">
+
+
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+</head>
+<body>
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+<!-- Navigation
+================================================== -->
+<header>
+  <h1>Srini Kadamati</h1>
+  <nav>
+    <a href="/">Home</a> / 
+    <a href="/blog/">Blog</a> / 
+    <a href="/about/">About</a> / 
+    <a href="/feeds/all.atom.xml">RSS</a>
+  </nav> <!-- End navbar -->
+</header>		<section id="content">
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1>Apache Superset from Scratch: Day 2 (Metadata Database)</h1>
+  <h6>December 24, 2021
+  </h6>
+  <hr>
+
+  <!-- Article Content
+  ================================================================== -->
+  <p>In Day 1, I setup the backend Python depedencies. Now, I'm going to start the metadata database. The next step, as laid out in <a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development">CONTRIBUTING.MD</a>, is to run:</p>
+<div class="highlight"><pre><span></span><code>superset db upgrade
+</code></pre></div>
+
+<h3>Superset CLI</h3>
+<p>Before we do that, I want to get more familiar with the Superset CLI. If you recall from the last post, running <code>superset</code> in the command line exposes a number of interesting commands we could run:</p>
+<p><img alt="Superset CLI" src="/images/superset_cli2.png"></p>
+<p>Some interesting commands that stick out:</p>
+<ul>
+<li>db: Perform database migrations.</li>
+<li>export-dashboards: Export dashboards to JSON</li>
+<li>fab: FAB flask group commands</li>
+<li>init: Inits the Superset application</li>
+</ul>
+<p>Where does the code for these CLI commands live? After some searches in the Superset codebase, it's clear they live in the <code>superset/cli.py</code> file. The CLI commands listed above map to function definitions. For example, here's the function definition for <code>superset init</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">@superset</span><span class="p">.</span><span class="n">command</span><span class="p">()</span><span class="w"></span>
+<span class="nv">@with_appcontext</span><span class="w"></span>
+<span class="n">def</span><span class="w"> </span><span class="n">init</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="k">None</span><span class="err">:</span><span class="w"></span>
+<span class="w">    </span><span class="ss">&quot;&quot;&quot;Inits the Superset application&quot;&quot;&quot;</span><span class="w"></span>
+<span class="w">    </span><span class="n">appbuilder</span><span class="p">.</span><span class="n">add_permissions</span><span class="p">(</span><span class="n">update_perms</span><span class="o">=</span><span class="k">True</span><span class="p">)</span><span class="w"></span>
+<span class="w">    </span><span class="n">security_manager</span><span class="p">.</span><span class="n">sync_role_definitions</span><span class="p">()</span><span class="w"></span>
+</code></pre></div>
+
+<p>It looks like there's no function declaration that maps to the <code>superset db</code> CLI command, but instead the <code>db</code> namespace is imported from another file:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset.extensions</span> <span class="kn">import</span> <span class="n">celery_app</span><span class="p">,</span> <span class="n">db</span>
+</code></pre></div>
+
+<p>If we jump to <code>superset/extensions.py</code>, we then see:</p>
+<div class="highlight"><pre><span></span><code>db = SQLA()
+</code></pre></div>
+
+<p>SQLA() sounds like SQLAlchemy, where is it defined or imported?</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flask_appbuilder</span> <span class="kn">import</span> <span class="n">AppBuilder</span><span class="p">,</span> <span class="n">SQLA</span>
+</code></pre></div>
+
+<p>Neat! I know that Superset is built on top of Flask App Builder (or FAB for short), so this must be one of the important touchpoints. We'll avoid continuing down the rabbit hole for now, and dive deeper into FAB another day.</p>
+<p>Let's ask the CLI to list out all of the available commands within <code>superset db</code>:</p>
+<p><img alt="Superset CLI db" src="/images/superset_cli_db.png"></p>
+<p>Neat! Let's run <code>superset db upgrade</code> now. As expected, a bunch of historical database migrations were run and applied.</p>
+<p><img alt="Superset db upgrade" src="/images/superset_db_upgrade.png"></p>
+<h3>Where does the metadata database live?</h3>
+<p>Apparently, <em>some</em> database somewhere was upgraded. But where does that database actually live? After some exploring online, it seems that by default this database resides as a single SQLite database file over in my home directory:</p>
+<div class="highlight"><pre><span></span><code>cat ~/.superset/superset.db
+</code></pre></div>
+
+<p>Running this command returns a long list of all the schema definitions. This is cool! I look forward to understanding the schemas later.</p>
+<h3>Creating default roles</h3>
+<p>Next up, we need to create an admin user in our metadata database (fancy word for our little SQLite database!):</p>
+<div class="highlight"><pre><span></span><code>superset fab create-admin
+</code></pre></div>
+
+<p>Before we run the full command, what CLI commands are available within the <code>superset fab</code> namespace?</p>
+<p><img alt="Superset CLI fab" src="/images/superset_cli_fab.png"></p>
+<p>The commands here let us create admin users, create regular users, create database objects, reset a user's password, and more. Let's create an admin user by running <code>superset fab create-admin</code>. To keep this simple during exploration, I just answered <strong>admin</strong> for every line in the wizard:</p>
+<p><img alt="Superset fab create-admin" src="/images/fab_create_admin.png"></p>
+<p>We now have an admin username (<strong>admin</strong>) and password (<strong>admin</strong>) combination for logging in to Superset, when the time is right. Next, let's create the rest of the roles and permissions:</p>
+<div class="highlight"><pre><span></span><code>superset init
+</code></pre></div>
+
+<p>It's interesting that this command isn't part of the <code>superset fab</code> command list.</p>
+<h3>Example Data</h3>
+<p>Let's load up the example datasets and dashboards, many of which were actually created by yours truly!</p>
+<div class="highlight"><pre><span></span><code><span class="n">superset</span> <span class="nb">load</span><span class="o">-</span><span class="n">examples</span>
+</code></pre></div>
+
+<p>What all is loaded? How does this actually work? For fun, let's dive into the functions &amp; relevant codepaths. Let's start with the function definition for <code>superset load-examples</code>. To follow Pythonic syntax, we need to instead look for <code>load_examples()</code> in <code>superset/cli.py</code>. Here's the function declaration:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@with_appcontext</span>
+<span class="nd">@superset</span><span class="o">.</span><span class="n">command</span><span class="p">()</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--load-test-data&quot;</span><span class="p">,</span> <span class="s2">&quot;-t&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Load additional test data&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">&quot;--load-big-data&quot;</span><span class="p">,</span> <span class="s2">&quot;-b&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Load additional big data&quot;</span><span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--only-metadata&quot;</span><span class="p">,</span> <span class="s2">&quot;-m&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only load metadata, skip actual data&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="nd">@click</span><span class="o">.</span><span class="n">option</span><span class="p">(</span>
+    <span class="s2">&quot;--force&quot;</span><span class="p">,</span> <span class="s2">&quot;-f&quot;</span><span class="p">,</span> <span class="n">is_flag</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Force load data even if table already exists&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span> <span class="nf">load_examples</span><span class="p">(</span>
+    <span class="n">load_test_data</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">load_big_data</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">only_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Loads a set of Slices and Dashboards and a supporting dataset&quot;&quot;&quot;</span>
+    <span class="n">load_examples_run</span><span class="p">(</span><span class="n">load_test_data</span><span class="p">,</span> <span class="n">load_big_data</span><span class="p">,</span> <span class="n">only_metadata</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+</code></pre></div>
+
+<p>While most of the code focuses on the possible CLI options &amp; function parameters, the actual function definition is a single line:</p>
+<div class="highlight"><pre><span></span><code><span class="n">load_examples_run</span><span class="p">(</span><span class="n">load_test_data</span><span class="p">,</span> <span class="n">load_big_data</span><span class="p">,</span> <span class="n">only_metadata</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+</code></pre></div>
+
+<p>If we jump to that function declaration, it's much much longer. This must be where the meat of the logic is for loading examples. Here's a screenshot of just the first half!</p>
+<p><img alt="Load Examples Run" src="/images/load_examples_run.png"></p>
+<p>This line looks interesting:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset</span> <span class="kn">import</span> <span class="n">examples</span>
+</code></pre></div>
+
+<p>If I poke through the file structure for Superset, I find a folder dedicated to examples (<code>superset/examples</code>). The <code>__init__.py</code> file for this folder defines each function mapping:</p>
+<p><img alt="Examples Directory" src="/images/examples_directory.png"></p>
+<p>Cool! What should I look at next?</p>
+<div class="highlight"><pre><span></span><code><span class="n">examples</span><span class="o">.</span><span class="n">load_css_templates</span><span class="p">()</span>
+</code></pre></div>
+
+<p>Superset ships with two default CSS templates for dashboards, so this code is likely how that data is loaded. Let's crack open the <code>def load_css_tesmplates()</code> function, which lives in <code>superset/examples/load_css_templates.py</code>.</p>
+<p><img alt="Load CSS Templates" src="/images/load_css_templates.png"></p>
+<p>Each CSS template is loaded one after another. Let's step through the key parts of the code to better understand it.</p>
+<div class="highlight"><pre><span></span><code>obj = db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre></div>
+
+<p>Here we see the <code>db</code> object again, from earlier. Unsurprisingly, there's a matching import statement for it:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset</span> <span class="kn">import</span> <span class="n">db</span>
+<span class="kn">from</span> <span class="nn">superset.models.core</span> <span class="kn">import</span> <span class="n">CssTemplate</span>
+</code></pre></div>
+
+<p>The CssTemplate data model itself looks very simple, as defined in <code>superset/models/core.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="n">CssTemplate</span>(<span class="n">Model</span>, <span class="n">AuditMixinNullable</span>):
+
+    <span class="s">&quot;&quot;&quot;CSS templates for dashboards&quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> = <span class="s">&quot;css_templates&quot;</span>
+    <span class="nb">id</span> = <span class="n">Column</span>(<span class="n">Integer</span>, <span class="n">primary_key</span>=<span class="nb">True</span>)
+    <span class="n">template_name</span> = <span class="n">Column</span>(<span class="n">String</span>(<span class="mi">250</span>))
+    <span class="n">css</span> = <span class="n">Column</span>(<span class="n">Text</span>, <span class="k">default</span>=<span class="s">&quot;&quot;</span>)
+</code></pre></div>
+
+<p>As a mental note to myself, this table is named <strong>css_templates</strong> in the metadata database.</p>
+<p>The rest of the code <em>smells</em> a lot like SQLAlchemy syntax:</p>
+<div class="highlight"><pre><span></span><code>db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre></div>
+
+<p>While I'm not too familiar with the Superset data model yet, this code likely:</p>
+<ul>
+<li>Attaches to a SQLAlchemy session / transaction</li>
+<li>Queries the metadata database, searching for a matching CssTemplate object with the name <strong>Flat</strong></li>
+<li>And the <code>first()</code> at the end is probably just for good measure, in case there are duplicate results</li>
+</ul>
+<p>The goal likely here is to search for an existing entry in the metadata database for the <strong>Flat</strong> CSS template. If an existing entry in the metadata database wasn't found, a new CssTemplate object is instantiated for the purpose of inserting later:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="nv">not</span> <span class="nv">obj</span>:
+    <span class="nv">obj</span> <span class="o">=</span> <span class="nv">CssTemplate</span><span class="ss">(</span><span class="nv">template_name</span><span class="o">=</span><span class="s2">&quot;</span><span class="s">Flat</span><span class="s2">&quot;</span><span class="ss">)</span>
+</code></pre></div>
+
+<p>Then, the CSS itself is defined as a hard-coded string (shortened extensively below):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">css</span> <span class="o">=</span> <span class="nt">textwrap</span><span class="p">.</span><span class="nc">dedent</span><span class="o">(</span>
+    <span class="s2">&quot;&quot;&quot;\</span>
+<span class="s2">    .navbar {</span>
+<span class="s2">        transition: opacity 0.5s ease;</span>
+<span class="s2">        opacity: 0.05;</span>
+<span class="s2">    }</span>
+<span class="s2">    ....</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="o">)</span>
+</code></pre></div>
+
+<p>Finally, the string is set to the instianted CssTemplate object's <code>css</code> column and inserted into the metadata database:</p>
+<div class="highlight"><pre><span></span><code>obj.css = css
+    db.session.merge(obj)
+    db.session.commit()
+</code></pre></div>
+
+<p>This whole process is then repeated to add the <strong>Courier Black</strong> CSS template.</p>
+<p>Phew! This was just the CSS templates. No example datasets or example dashboards yet. Because I'm running out of time today, I'll circle back to the code paths for those a later day.</p>
+<h3>Starting Flask Server</h3>
+<p>The last step now is to fire up the Flask server and see how Superset looks in the web browser.</p>
+<div class="highlight"><pre><span></span><code><span class="n">FLASK_ENV</span><span class="o">=</span><span class="n">development</span> <span class="n">superset</span> <span class="n">run</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span> <span class="o">--</span><span class="n">with</span><span class="o">-</span><span class="n">threads</span> <span class="o">--</span><span class="n">reload</span> <span class="o">--</span><span class="n">debugger</span>
+</code></pre></div>
+
+<p>By default, Flask will run on port 8088 but we can change the port number by changing the value we put in the invocation.</p>
+<p><img alt="Flask Server" src="/images/flask_server.png"></p>
+<p>We're shown a somewhat incomplete and outdated login screen. This is interesting.</p>
+<p><img alt="Superset Login" src="/images/superset_login.png"></p>
+<p>My guess here is that somewhere, the frontend assets need to be built. This seems to align with the comments listed before the flask server initialization instructions:</p>
+<div class="highlight"><pre><span></span><code># <span class="nv">Start</span> <span class="nv">the</span> <span class="nv">Flask</span> <span class="nv">dev</span> <span class="nv">web</span> <span class="nv">server</span> <span class="nv">from</span> <span class="nv">inside</span> <span class="nv">your</span> <span class="nv">virtualenv</span>.
+# <span class="nv">Note</span> <span class="nv">that</span> <span class="nv">your</span> <span class="nv">page</span> <span class="nv">may</span> <span class="nv">not</span> <span class="nv">have</span> <span class="nv">CSS</span> <span class="nv">at</span> <span class="nv">this</span> <span class="nv">point</span>.
+# <span class="nv">See</span> <span class="nv">instructions</span> <span class="nv">below</span> <span class="nv">how</span> <span class="nv">to</span> <span class="nv">build</span> <span class="nv">the</span> <span class="nv">front</span><span class="o">-</span><span class="k">end</span> <span class="nv">assets</span>.
+</code></pre></div>
+
+<p>Let's save frontend for Day 3!</p>
+		</section>
+<footer>
+  <hr class="small">
+  <center>
+  <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
+  </center>
+</footer>	</div><!-- container -->
+
+<!-- Google Analytics
+================================================== -->
+  <script>
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga('create', 'G-SERB6N54H0', 'auto');
+  ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
