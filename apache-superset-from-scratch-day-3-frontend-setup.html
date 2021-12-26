@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch: Day 3 (Frontend Setup)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; Copyright Srini Kadamati, 2021 to present">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+
+  <!-- Feeds
+  ================================================== -->
+  <link rel="alternate" type="application/atom+xml" href="/feeds/all.atom.xml" title="Srini Kadamati Full Atom Feed">
+
+
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+</head>
+<body>
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+<!-- Navigation
+================================================== -->
+<header>
+  <h1>Srini Kadamati</h1>
+  <nav>
+    <a href="/">Home</a> / 
+    <a href="/blog/">Blog</a> / 
+    <a href="/about/">About</a> / 
+    <a href="/feeds/all.atom.xml">RSS</a>
+  </nav> <!-- End navbar -->
+</header>		<section id="content">
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1>Apache Superset from Scratch: Day 3 (Frontend Setup)</h1>
+  <h6>December 25, 2021
+  </h6>
+  <hr>
+
+  <!-- Article Content
+  ================================================================== -->
+  <p>In Day 3, I'm going to dive into setting up the frontend. In general, I'm quite new to the frontend ecosystem, so expect lots of tangents to fill in knowledge gaps along the way!</p>
+<p>We'll start with the <a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#frontend">Frontend section from CONTRIBUTING.MD</a>.</p>
+<p>The first paragraph has some helpful historical context:</p>
+<blockquote>
+<p>Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The superset-frontend directory contains all NPM-managed frontend assets. Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap). These are not managed by NPM and may be phased out in the future.</p>
+</blockquote>
+<h3>Node</h3>
+<p>Thankfully, I've used Node a little bit before. Let me check what version I have installed on this computer. Usually the <code>--version</code> flag will do the trick!</p>
+<div class="highlight"><pre><span></span><code>node --version
+&gt; v17.3.0
+</code></pre></div>
+
+<p>The guide recommends Node 16, but Node 17.x should be fine. Let's check the <code>npm</code> version next. Npm is the Node package manager:</p>
+<div class="highlight"><pre><span></span><code>npm --version
+&gt; 8.3.0
+</code></pre></div>
+
+<p>The guide recommends using <code>nvm</code> to manage different Node versions. This is helpful advice, but I don't want to prematurely optimize and add more abstraction / complexity than needed. So let's soldier on for now.</p>
+<h3>Package.json</h3>
+<p>The <code>package.json</code> is the Node equivalent to Python's <code>requirements.txt</code> file. For Superset, the <code>package.json</code> file lives within the <code>superset/superset-frontend/</code> folder. Let's switch into that folder.</p>
+<p>What's actually in this file? A. LOT. Let's break some of this down.</p>
+<div class="highlight"><pre><span></span><code>{
+  &quot;name&quot;: &quot;superset&quot;,
+  &quot;version&quot;: &quot;0.0.0dev&quot;,
+  &quot;description&quot;: &quot;Superset is a data exploration platform designed to be visual, intuitive, and interactive.&quot;,
+  &quot;keywords&quot;: [
+    &quot;big&quot;,
+    &quot;data&quot;,
+    &quot;exploratory&quot;,
+    &quot;analysis&quot;,
+    &quot;react&quot;,
+    &quot;d3&quot;,
+    &quot;airbnb&quot;,
+    &quot;nerds&quot;,
+    &quot;database&quot;,
+    &quot;flask&quot;
+  ],
+</code></pre></div>
+
+<p>This line is interesting: <code>"version": "0.0.0dev".</code> I wonder if this is where the Superset version value that's shown in the Superset UI lives? </p>
+<p><em>As a quick detour, I wonder what this value in the <code>package.json</code> file <a href="https://github.com/apache/superset/blob/1.4/superset-frontend/package.json">in the Superset v1.4 release</a> looks like?</em></p>
+<p><img alt="Superset CLI" src="/images/superset_14_package.png"></p>
+<p>My hunch was right! 1.4 is harcoded as a string in the <code>package.json</code> file. Cool!</p>
+<p>Then we can run <code>npm install</code>, which should use the <code>superset-frontend/package.json</code> file. But the documentation suggests <code>npm ci</code>. <a href="https://stackoverflow.com/a/53325242">Searching online suggests</a> using <code>npm ci</code> if there's an existing <code>package-lock.json</code> file.</p>
+<p>Because the project has an existing <code>package-lock.json</code> file, let's use <code>npm ci</code>!</p>
+<p><img alt="npm ci" src="/images/npm_ci_1.png"></p>
+<p>In the first half of the CLI output, I see that npm installed 5009 packages and displayed a bunch of deprecation warnings.</p>
+<p><img alt="npm ci" src="/images/npm_ci_2.png"></p>
+<p>In the second half of the CLI output, I see that there are 111 vulnerabilities. I'm noting both of these down (through this post!) to investigate later.</p>
+<h3>Build Frontend Assets</h3>
+<p>Next, as the guide suggests, I will run <code>npm run build</code>. After a few minutes, I was presented with many warnings but some indication that the build succeeded?</p>
+<p><img alt="npm run build" src="/images/npm_run_build.png"></p>
+<p>Next, we can start the dev server at port <code>9000</code> by running:</p>
+<div class="highlight"><pre><span></span><code>npm run dev-server
+</code></pre></div>
+
+<p>Here's what the CLI output looks like with both the frontend and backend runinng simultaneously:</p>
+<p><img alt="backend and frontend" src="/images/backend_frontend.png"></p>
+<p>Exciting! Now if I head to <code>localhost:8088</code>, I should see Superset:</p>
+<p><img alt="Superset UI" src="/images/superset_ui.png"></p>
+<p>Hmm, that's curious. I'm logged in as the admin and I'm still seeing issues.</p>
+<p>Unfortunately I'm out of time for today, so I'll have to debug this on Day 4!</p>
+		</section>
+<footer>
+  <hr class="small">
+  <center>
+  <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
+  </center>
+</footer>	</div><!-- container -->
+
+<!-- Google Analytics
+================================================== -->
+  <script>
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga('create', 'G-SERB6N54H0', 'auto');
+  ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
