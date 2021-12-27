@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch: Day 4 (Superset & Flask Entrypoint)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; Copyright Srini Kadamati, 2021 to present">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+
+  <!-- Feeds
+  ================================================== -->
+  <link rel="alternate" type="application/atom+xml" href="/feeds/all.atom.xml" title="Srini Kadamati Full Atom Feed">
+
+
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+</head>
+<body>
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+<!-- Navigation
+================================================== -->
+<header>
+  <h1>Srini Kadamati</h1>
+  <nav>
+    <a href="/">Home</a> / 
+    <a href="/blog/">Blog</a> / 
+    <a href="/about/">About</a> / 
+    <a href="/feeds/all.atom.xml">RSS</a>
+  </nav> <!-- End navbar -->
+</header>		<section id="content">
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1>Apache Superset from Scratch: Day 4 (Superset & Flask Entrypoint)</h1>
+  <h6>December 26, 2021
+  </h6>
+  <hr>
+
+  <!-- Article Content
+  ================================================================== -->
+  <p>I ended Day 3 by setting up the backend and frontend servers, but running into the following error.</p>
+<p><img alt="Superset UI" src="/images/superset_ui.png"></p>
+<p>For good measure, I'm going to shut down and restart the backend server. Success!</p>
+<p><img alt="Superset UI Fixed" src="/images/superset_ui_fixed.png"></p>
+<p>No thumbnails though ☹️. Well I do know from previous experience that thumbnails require setting up a separate celery server. This will need separate investigation.</p>
+<p>Now that I have Superset up and running, what should I look into next? I really want to dive deeper into how the example datasets, charts, and dashboards are loaded. This will force me to better understand the internal Superset data model.</p>
+<h3>How the Superset Examples Work</h3>
+<p>The world health dashboard looks interesting and like one of the more complex ones. I'll start by poking deeper into this one:</p>
+<p><img alt="World Health Dashboards" src="/images/world_health_dashboard.png"></p>
+<p>Here's the relevant function call from <code>superset/cli.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Loading [World Bank&#39;s Health Nutrition and Population Stats]&quot;</span><span class="p">)</span>
+<span class="n">examples</span><span class="o">.</span><span class="n">load_world_bank_health_n_pop</span><span class="p">(</span><span class="n">only_metadata</span><span class="p">,</span> <span class="n">force</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Sooo, let's get into it. Where does the second line of code actually point to? As I mentioned in <a href="/apache-superset-from-scratch-day-2-metadata-database.html">Day 2</a>, the <code>superset/superset/examples/__init__.py</code> file contains mappings like this one:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">.world_bank</span> <span class="kn">import</span> <span class="n">load_world_bank_health_n_pop</span>
+</code></pre></div>
+
+<p>This means that the <code>load_world_bank_health_n_pop()</code> function lives in <code>examples/world_bank.py</code>! Here's a preview of the first 8 lines:</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">load_world_bank_health_n_pop</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-locals, too-many-statements</span>
+    <span class="n">only_metadata</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Loads the world bank health dataset, slices and a dashboard&quot;&quot;&quot;</span>
+    <span class="n">tbl_name</span> <span class="o">=</span> <span class="s2">&quot;wb_health_population&quot;</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_example_database</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">get_sqla_engine</span><span class="p">()</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span><span class="o">.</span><span class="n">default_schema_name</span>
+    <span class="n">table_exists</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">has_table_by_name</span><span class="p">(</span><span class="n">tbl_name</span><span class="p">)</span>
+</code></pre></div>
+
+<p>The first line almost surely refers to the table name in the examples database.</p>
+<div class="highlight"><pre><span></span><code>tbl_name = &quot;wb_health_population&quot;
+</code></pre></div>
+
+<p>How can I confirm this? The fastest way is to probably crack open SQL Lab and inspect the table name for the examples database.</p>
+<p><img alt="World Health Table" src="/images/wb_sqllab.png"></p>
+<p>Confirmed. Let's check out the next line:</p>
+<div class="highlight"><pre><span></span><code>database = utils.get_example_database()
+</code></pre></div>
+
+<p>Ah yes, the art of the <code>utils</code>! The perfect hiding place for some arbitrary functions. Where does this point to?</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">superset.utils</span> <span class="kn">import</span> <span class="n">core</span> <span class="k">as</span> <span class="n">utils</span>
+</code></pre></div>
+
+<p>So there should be a <code>utils/core.py</code> file. Oh boy, this file is 1835 lines of code. But it does have the <code>get_example_database()</code> function that's called. The function definition is pretty short so I'm including it here in it's entireity:</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">get_example_database</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="s">&quot;Database&quot;</span><span class="o">:</span>
+    <span class="n">db_uri</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">current_app</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;SQLALCHEMY_EXAMPLES_URI&quot;</span><span class="p">)</span>
+        <span class="kr">or</span> <span class="n">current_app</span><span class="p">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;SQLALCHEMY_DATABASE_URI&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="kr">return</span> <span class="n">get_or_create_db</span><span class="p">(</span><span class="s">&quot;examples&quot;</span><span class="p">,</span> <span class="n">db_uri</span><span class="p">)</span>
+</code></pre></div>
+
+<p>Now we're getting somewhere! This function tells the app which database is designated as the <strong>examples</strong> one. First things first, where is <code>current_app</code> defined?</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">flask</span> <span class="kn">import</span> <span class="n">current_app</span><span class="p">,</span> <span class="n">flash</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">Markup</span><span class="p">,</span> <span class="n">render_template</span><span class="p">,</span> <span class="n">request</span>
+</code></pre></div>
+
+<p>The <code>current_app</code> object is imported from <a href="https://flask.palletsprojects.com/en/2.0.x/">flask</a>, which is a Python microframework for creating web applications. </p>
+<blockquote>
+<p>Note to self: I need to dig into the relationship between Flask and Flask App-builder later on.</p>
+</blockquote>
+<p>After a quick Google search, I found the page in the flask documentation on <a href="https://flask.palletsprojects.com/en/2.0.x/appcontext/">the current application context</a>. Perusing this page, this reminds me a lot of of the <code>request</code> object from my Ruby on Rails days. This was a form of passing application state around.</p>
+<p>This is essentially a way to reference values specific to the current instance running of the running Superset application.</p>
+<blockquote>
+<p>The application context keeps track of the application-level data during a request, CLI command, or other activity. Rather than passing the application around to each function, the current_app and g proxies are accessed instead.</p>
+<p>This is similar to The Request Context, which keeps track of request-level data during a request. A corresponding application context is pushed when a request context is pushed.</p>
+</blockquote>
+<p>Well what do you know! There's a call out to the <a href="https://flask.palletsprojects.com/en/2.0.x/reqcontext/">flask version of the request object</a> that's similar to the one from Rails! My hunch was spot on.</p>
+<h3>App Factory Pattern</h3>
+<p>To take a step back, what actually happens when I run <code>superset run</code> from the CLI?</p>
+<p>The <a href="https://flask.palletsprojects.com/en/2.0.x/tutorial/factory/">flask documentation</a> suggests that the <code>def create_app()</code> function definition is likely to be the <strong>entrypoint</strong> to the flask application at the core of Superset that is called when <code>flask run</code> or an equivalent is run.</p>
+<p>A quick search in my text editor found only one non-test-related definition for <code>create_app()</code>, found in <code>superset/superset/app.py</code>:</p>
+<p><img alt="App Py" src="/images/app_py.png"></p>
+<p>These lines especially look relevant to our investigation of how:</p>
+<ul>
+<li>the World Health dashboard is loaded</li>
+<li>how <code>current_app.config.get("SQLALCHEMY_EXAMPLES_URI")</code> resolves</li>
+<li>getting closer to <code>current_app</code></li>
+</ul>
+<div class="highlight"><pre><span></span><code>try:
+    # Allow user to override our config completely
+    config_module = os.environ.get(&quot;SUPERSET_CONFIG&quot;, &quot;superset.config&quot;)
+    app.config.from_object(config_module)
+</code></pre></div>
+
+<h3>Next Steps</h3>
+<p>I feel closer to understanding all of the links here, but sadly I'm out of time today. Here are the open questions I still have:</p>
+<ul>
+<li>What's the link between <code>create_app()</code> and <code>current_app</code>?</li>
+<li>Where is the value for <code>SQLALCHEMY_EXAMPLES_URI</code> actually set?</li>
+<li>How does this line of code actually work: <code>os.environ.get("SUPERSET_CONFIG", "superset.config")</code>?</li>
+</ul>
+		</section>
+<footer>
+  <hr class="small">
+  <center>
+  <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
+  </center>
+</footer>	</div><!-- container -->
+
+<!-- Google Analytics
+================================================== -->
+  <script>
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga('create', 'G-SERB6N54H0', 'auto');
+  ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
