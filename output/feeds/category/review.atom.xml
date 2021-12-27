@@ -1,5 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-25T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 3 (Frontend Setup)</title><link href="/apache-superset-from-scratch-day-3-frontend-setup.html" rel="alternate"></link><published>2021-12-25T10:20:00-05:00</published><updated>2021-12-25T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-25:/apache-superset-from-scratch-day-3-frontend-setup.html</id><summary type="html">&lt;p&gt;In Day 3, I'm going to dive into setting up the frontend. In general, I'm quite new to the frontend ecosystem, so expect lots of tangents to fill in knowledge gaps along the way!&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-26T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 4 (Superset &amp; Flask Entrypoint)</title><link href="/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html" rel="alternate"></link><published>2021-12-26T10:20:00-05:00</published><updated>2021-12-26T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-26:/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html</id><summary type="html">&lt;p&gt;I ended Day 3 by setting up the backend and frontend servers, but running into the following error.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset UI" src="/images/superset_ui.png"&gt;&lt;/p&gt;
+&lt;p&gt;For good measure, I'm going to shut down and restart the backend server. Success!&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset UI Fixed" src="/images/superset_ui_fixed.png"&gt;&lt;/p&gt;
+&lt;p&gt;No thumbnails though ☹️. Well I do know from previous experience that thumbnails require setting up a separate celery …&lt;/p&gt;</summary><content type="html">&lt;p&gt;I ended Day 3 by setting up the backend and frontend servers, but running into the following error.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset UI" src="/images/superset_ui.png"&gt;&lt;/p&gt;
+&lt;p&gt;For good measure, I'm going to shut down and restart the backend server. Success!&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset UI Fixed" src="/images/superset_ui_fixed.png"&gt;&lt;/p&gt;
+&lt;p&gt;No thumbnails though ☹️. Well I do know from previous experience that thumbnails require setting up a separate celery server. This will need separate investigation.&lt;/p&gt;
+&lt;p&gt;Now that I have Superset up and running, what should I look into next? I really want to dive deeper into how the example datasets, charts, and dashboards are loaded. This will force me to better understand the internal Superset data model.&lt;/p&gt;
+&lt;h3&gt;How the Superset Examples Work&lt;/h3&gt;
+&lt;p&gt;The world health dashboard looks interesting and like one of the more complex ones. I'll start by poking deeper into this one:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="World Health Dashboards" src="/images/world_health_dashboard.png"&gt;&lt;/p&gt;
+&lt;p&gt;Here's the relevant function call from &lt;code&gt;superset/cli.py&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nb"&gt;print&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;Loading [World Bank&amp;#39;s Health Nutrition and Population Stats]&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;span class="n"&gt;examples&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;load_world_bank_health_n_pop&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;only_metadata&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Sooo, let's get into it. Where does the second line of code actually point to? As I mentioned in &lt;a href="/apache-superset-from-scratch-day-2-metadata-database.html"&gt;Day 2&lt;/a&gt;, the &lt;code&gt;superset/superset/examples/__init__.py&lt;/code&gt; file contains mappings like this one:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;.world_bank&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;load_world_bank_health_n_pop&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This means that the &lt;code&gt;load_world_bank_health_n_pop()&lt;/code&gt; function lives in &lt;code&gt;examples/world_bank.py&lt;/code&gt;! Here's a preview of the first 8 lines:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;load_world_bank_health_n_pop&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;  &lt;span class="c1"&gt;# pylint: disable=too-many-locals, too-many-statements&lt;/span&gt;
+    &lt;span class="n"&gt;only_metadata&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb nb-Type"&gt;bool&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;force&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb nb-Type"&gt;bool&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;sample&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="nb nb-Type"&gt;bool&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;False&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;
+&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;None&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="sd"&gt;&amp;quot;&amp;quot;&amp;quot;Loads the world bank health dataset, slices and a dashboard&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+    &lt;span class="n"&gt;tbl_name&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;wb_health_population&amp;quot;&lt;/span&gt;
+    &lt;span class="n"&gt;database&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;utils&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_example_database&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;engine&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get_sqla_engine&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+    &lt;span class="n"&gt;schema&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;inspect&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;engine&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;default_schema_name&lt;/span&gt;
+    &lt;span class="n"&gt;table_exists&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;database&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;has_table_by_name&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;tbl_name&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The first line almost surely refers to the table name in the examples database.&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;tbl_name = &amp;quot;wb_health_population&amp;quot;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;How can I confirm this? The fastest way is to probably crack open SQL Lab and inspect the table name for the examples database.&lt;/p&gt;
+&lt;p&gt;&lt;img alt="World Health Table" src="/images/wb_sqllab.png"&gt;&lt;/p&gt;
+&lt;p&gt;Confirmed. Let's check out the next line:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;database = utils.get_example_database()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Ah yes, the art of the &lt;code&gt;utils&lt;/code&gt;! The perfect hiding place for some arbitrary functions. Where does this point to?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;superset.utils&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;core&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;utils&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;So there should be a &lt;code&gt;utils/core.py&lt;/code&gt; file. Oh boy, this file is 1835 lines of code. But it does have the &lt;code&gt;get_example_database()&lt;/code&gt; function that's called. The function definition is pretty short so I'm including it here in it's entireity:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;get_example_database&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Database&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;db_uri&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;current_app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SQLALCHEMY_EXAMPLES_URI&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="kr"&gt;or&lt;/span&gt; &lt;span class="n"&gt;current_app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SQLALCHEMY_DATABASE_URI&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="kr"&gt;return&lt;/span&gt; &lt;span class="n"&gt;get_or_create_db&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;examples&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;db_uri&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Now we're getting somewhere! This function tells the app which database is designated as the &lt;strong&gt;examples&lt;/strong&gt; one. First things first, where is &lt;code&gt;current_app&lt;/code&gt; defined?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;flask&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;current_app&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;flash&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;g&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;Markup&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;render_template&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;request&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The &lt;code&gt;current_app&lt;/code&gt; object is imported from &lt;a href="https://flask.palletsprojects.com/en/2.0.x/"&gt;flask&lt;/a&gt;, which is a Python microframework for creating web applications. &lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Note to self: I need to dig into the relationship between Flask and Flask App-builder later on.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;After a quick Google search, I found the page in the flask documentation on &lt;a href="https://flask.palletsprojects.com/en/2.0.x/appcontext/"&gt;the current application context&lt;/a&gt;. Perusing this page, this reminds me a lot of of the &lt;code&gt;request&lt;/code&gt; object from my Ruby on Rails days. This was a form of passing application state around.&lt;/p&gt;
+&lt;p&gt;This is essentially a way to reference values specific to the current instance running of the running Superset application.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;The application context keeps track of the application-level data during a request, CLI command, or other activity. Rather than passing the application around to each function, the current_app and g proxies are accessed instead.&lt;/p&gt;
+&lt;p&gt;This is similar to The Request Context, which keeps track of request-level data during a request. A corresponding application context is pushed when a request context is pushed.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Well what do you know! There's a call out to the &lt;a href="https://flask.palletsprojects.com/en/2.0.x/reqcontext/"&gt;flask version of the request object&lt;/a&gt; that's similar to the one from Rails! My hunch was spot on.&lt;/p&gt;
+&lt;h3&gt;App Factory Pattern&lt;/h3&gt;
+&lt;p&gt;To take a step back, what actually happens when I run &lt;code&gt;superset run&lt;/code&gt; from the CLI?&lt;/p&gt;
+&lt;p&gt;The &lt;a href="https://flask.palletsprojects.com/en/2.0.x/tutorial/factory/"&gt;flask documentation&lt;/a&gt; suggests that the &lt;code&gt;def create_app()&lt;/code&gt; function definition is likely to be the &lt;strong&gt;entrypoint&lt;/strong&gt; to the flask application at the core of Superset that is called when &lt;code&gt;flask run&lt;/code&gt; or an equivalent is run.&lt;/p&gt;
+&lt;p&gt;A quick search in my text editor found only one non-test-related definition for &lt;code&gt;create_app()&lt;/code&gt;, found in &lt;code&gt;superset/superset/app.py&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="App Py" src="/images/app_py.png"&gt;&lt;/p&gt;
+&lt;p&gt;These lines especially look relevant to our investigation of how:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;the World Health dashboard is loaded&lt;/li&gt;
+&lt;li&gt;how &lt;code&gt;current_app.config.get("SQLALCHEMY_EXAMPLES_URI")&lt;/code&gt; resolves&lt;/li&gt;
+&lt;li&gt;getting closer to &lt;code&gt;current_app&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;try:
+    # Allow user to override our config completely
+    config_module = os.environ.get(&amp;quot;SUPERSET_CONFIG&amp;quot;, &amp;quot;superset.config&amp;quot;)
+    app.config.from_object(config_module)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3&gt;Next Steps&lt;/h3&gt;
+&lt;p&gt;I feel closer to understanding all of the links here, but sadly I'm out of time today. Here are the open questions I still have:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;What's the link between &lt;code&gt;create_app()&lt;/code&gt; and &lt;code&gt;current_app&lt;/code&gt;?&lt;/li&gt;
+&lt;li&gt;Where is the value for &lt;code&gt;SQLALCHEMY_EXAMPLES_URI&lt;/code&gt; actually set?&lt;/li&gt;
+&lt;li&gt;How does this line of code actually work: &lt;code&gt;os.environ.get("SUPERSET_CONFIG", "superset.config")&lt;/code&gt;?&lt;/li&gt;
+&lt;/ul&gt;</content><category term="Review"></category></entry><entry><title>Apache Superset from Scratch: Day 3 (Frontend Setup)</title><link href="/apache-superset-from-scratch-day-3-frontend-setup.html" rel="alternate"></link><published>2021-12-25T10:20:00-05:00</published><updated>2021-12-25T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-25:/apache-superset-from-scratch-day-3-frontend-setup.html</id><summary type="html">&lt;p&gt;In Day 3, I'm going to dive into setting up the frontend. In general, I'm quite new to the frontend ecosystem, so expect lots of tangents to fill in knowledge gaps along the way!&lt;/p&gt;
 &lt;p&gt;We'll start with the &lt;a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#frontend"&gt;Frontend section from CONTRIBUTING.MD&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;The first paragraph has some helpful historical …&lt;/p&gt;</summary><content type="html">&lt;p&gt;In Day 3, I'm going to dive into setting up the frontend. In general, I'm quite new to the frontend ecosystem, so expect lots of tangents to fill in knowledge gaps along the way!&lt;/p&gt;
 &lt;p&gt;We'll start with the &lt;a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#frontend"&gt;Frontend section from CONTRIBUTING.MD&lt;/a&gt;.&lt;/p&gt;
