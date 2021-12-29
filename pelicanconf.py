@@ -57,7 +57,7 @@ EXTRA_PATH_METADATA = {'extra/CNAME': {'path': 'CNAME'},'extra/robots.txt': {'pa
 # Uncomment following line if you want document-relative URLs when developing
 #RELATIVE_URLS = True
 
-GOOGLE_ANALYTICS = 'G-SERB6N54H0'
+GOOGLE_ANALYTICS = 'UA-215861180-1'
 DOMAIN = "viz.gl"
 
 CACHE_CONTENT = False

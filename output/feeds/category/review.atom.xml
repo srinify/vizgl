@@ -1,5 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-26T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 4 (Superset &amp; Flask Entrypoint)</title><link href="/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html" rel="alternate"></link><published>2021-12-26T10:20:00-05:00</published><updated>2021-12-26T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-26:/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html</id><summary type="html">&lt;p&gt;I ended Day 3 by setting up the backend and frontend servers, but running into the following error.&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-28T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 5 (More Flask App)</title><link href="/apache-superset-from-scratch-day-5-more-flask-app.html" rel="alternate"></link><published>2021-12-28T10:20:00-05:00</published><updated>2021-12-28T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-28:/apache-superset-from-scratch-day-5-more-flask-app.html</id><summary type="html">&lt;p&gt;I ended Day 4 trying to understand how the World Health dashboard was imported. I walked away with a lot of open questions around how the flask app factory pattern worked. After sleeping on it and approaching with fresh eyes, I'm excited to hopefully make more progress today.&lt;/p&gt;
+&lt;h3&gt;Flask App …&lt;/h3&gt;</summary><content type="html">&lt;p&gt;I ended Day 4 trying to understand how the World Health dashboard was imported. I walked away with a lot of open questions around how the flask app factory pattern worked. After sleeping on it and approaching with fresh eyes, I'm excited to hopefully make more progress today.&lt;/p&gt;
+&lt;h3&gt;Flask App Context&lt;/h3&gt;
+&lt;p&gt;I spent the morning reading the following articles from the excellent Flask documentation:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://flask.palletsprojects.com/en/2.0.x/appcontext/"&gt;the Application Context&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://flask.palletsprojects.com/en/2.0.x/api/#flask.Config"&gt;class flask.Config&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://flask.palletsprojects.com/en/2.0.x/patterns/appfactories/"&gt;Application Factories&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://flask.palletsprojects.com/en/2.0.x/config/#configuring-from-python-files"&gt;Configuring from Python Files&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;After going deep into these, I'll attempt to walkthrough everything I learned.&lt;/p&gt;
+&lt;p&gt;As I mentioned in the last post, the crucial entry-point into the Flask application is the &lt;code&gt;create_app()&lt;/code&gt; function from &lt;code&gt;superset/superset/app.py&lt;/code&gt;. Here's the entire function definition:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;create_app&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;Flask&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;app&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;SupersetApp&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;__name__&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+    &lt;span class="n"&gt;try&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+        &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;Allow&lt;/span&gt; &lt;span class="n"&gt;user&lt;/span&gt; &lt;span class="n"&gt;to&lt;/span&gt; &lt;span class="n"&gt;override&lt;/span&gt; &lt;span class="n"&gt;our&lt;/span&gt; &lt;span class="n"&gt;config&lt;/span&gt; &lt;span class="n"&gt;completely&lt;/span&gt;
+        &lt;span class="n"&gt;config_module&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;os&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;environ&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SUPERSET_CONFIG&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;superset.config&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;from_object&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;config_module&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+
+        &lt;span class="n"&gt;app_initializer&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;APP_INITIALIZER&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;SupersetAppInitializer&lt;/span&gt;&lt;span class="p"&gt;)(&lt;/span&gt;&lt;span class="n"&gt;app&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;app_initializer&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;init_app&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+
+        &lt;span class="kr"&gt;return&lt;/span&gt; &lt;span class="n"&gt;app&lt;/span&gt;
+
+    &lt;span class="err"&gt;#&lt;/span&gt; &lt;span class="n"&gt;Make&lt;/span&gt; &lt;span class="n"&gt;sure&lt;/span&gt; &lt;span class="n"&gt;that&lt;/span&gt; &lt;span class="n"&gt;bootstrap&lt;/span&gt; &lt;span class="n"&gt;errors&lt;/span&gt; &lt;span class="n"&gt;ALWAYS&lt;/span&gt; &lt;span class="n"&gt;get&lt;/span&gt; &lt;span class="n"&gt;logged&lt;/span&gt;
+    &lt;span class="kr"&gt;except&lt;/span&gt; &lt;span class="n"&gt;Exception&lt;/span&gt; &lt;span class="kr"&gt;as&lt;/span&gt; &lt;span class="n"&gt;ex&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+        &lt;span class="n"&gt;logger&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;exception&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;Failed to create app&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="n"&gt;raise&lt;/span&gt; &lt;span class="n"&gt;ex&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Within &lt;code&gt;create_app()&lt;/code&gt;, the following line of code defines what &lt;code&gt;current_app&lt;/code&gt; refers to: &lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;app = SupersetApp(__name__)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The &lt;code&gt;current_app&lt;/code&gt; variable acts as a global variable for different parts of your application to reference &amp;amp; use. The following line of code retrieves information from the &lt;code&gt;SUPERSET_CONFIG&lt;/code&gt; environment variable (using &lt;code&gt;os.environ.get()&lt;/code&gt;) and defaults to &lt;code&gt;superset.config&lt;/code&gt; if not found:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;config_module = os.environ.get(&amp;quot;SUPERSET_CONFIG&amp;quot;, &amp;quot;superset.config&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Then, the configuration information is loaded and attached to the &lt;code&gt;app&lt;/code&gt; object (elsewhere in the application it would be referenced as &lt;code&gt;current_app&lt;/code&gt;).&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;app.config.from_object(config_module)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;All of the information so far suggests that the &lt;code&gt;SQLALCHEMY_EXAMPLES_URI&lt;/code&gt; value is meant to be configured, which makes sense! &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;By default in a native Superset installation, the SQLite database in my home directory is used. &lt;/li&gt;
+&lt;li&gt;But within the Docker Compose image for Superset, the included Postgres database is used instead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;There's still SO much I don't understand about Flask, but I need to do a separate, multi-day deep dive into that web framework. I want to balance breadth with depth here and it may be time to move on with the cursory understanding I have.&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Note to self: Go through &lt;a href="https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xv-a-better-application-structure"&gt;Flask mega-tutorial&lt;/a&gt;, which seems to be consistently recommended by people online!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3&gt;Examples Database&lt;/h3&gt;
+&lt;p&gt;I want to come back for air, and circle back to how the World Health dashboard is loaded into the Superset metadata database. I want to understand this function better, which is called from the &lt;code&gt;load_world_bank_health_n_pop()&lt;/code&gt; function in &lt;code&gt;world_bank.py&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;get_example_database&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="s"&gt;&amp;quot;Database&amp;quot;&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+    &lt;span class="n"&gt;db_uri&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;
+        &lt;span class="n"&gt;current_app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;get&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SQLALCHEMY_EXAMPLES_URI&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="kr"&gt;or&lt;/span&gt; &lt;span class="n"&gt;current_app&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;SQLALCHEMY_DATABASE_URI&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="p"&gt;)&lt;/span&gt;
+    &lt;span class="kr"&gt;return&lt;/span&gt; &lt;span class="n"&gt;get_or_create_db&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;examples&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;db_uri&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The first clause looks interesting:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;db_uri = (
+        current_app.config.get(&amp;quot;SQLALCHEMY_EXAMPLES_URI&amp;quot;)
+        or current_app.config[&amp;quot;SQLALCHEMY_DATABASE_URI&amp;quot;]
+    )
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This code is attempting to look up the database URI based on the app's configuration settings. We know that &lt;code&gt;current_app.config.get()&lt;/code&gt; looks up values from &lt;code&gt;superset/superset/config.py&lt;/code&gt;. At 1337 lines of code, the &lt;code&gt;config.py&lt;/code&gt; file is massive. It contains code mostly assigning values to all-upper-case variable names. Here's an example:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;SQLALCHEMY_EXAMPLES_URI = None
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Here's a walkthrough of how &lt;code&gt;db_uri&lt;/code&gt; is calculated:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The first clause is attempting to find a truthy value, between &lt;code&gt;SQLALCHEMY_EXAMPLES_URI&lt;/code&gt; and &lt;code&gt;SQLALCHEMY_DATABASE_URI&lt;/code&gt;. &lt;/li&gt;
+&lt;li&gt;Because by default &lt;code&gt;SQLALCHEMY_EXAMPLES_URI&lt;/code&gt; is set to &lt;code&gt;None&lt;/code&gt;, the value for &lt;code&gt;SQLALCHEMY_DATABASE_URI&lt;/code&gt; is then looked up.&lt;/li&gt;
+&lt;li&gt;By default, &lt;code&gt;SQLALCHEMY_DATABASE_URI&lt;/code&gt; is assigned to evaluate: &lt;code&gt;"sqlite:///" + os.path.join(DATA_DIR, "superset.db")&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Now we're getting somewhere! The &lt;code&gt;sqlite:///&lt;/code&gt; and &lt;code&gt;"superset.db"&lt;/code&gt; parts &lt;em&gt;smells&lt;/em&gt; a lot like the location of the sqlite metadata database that lives in my home directory that I dug up in &lt;a href="/apache-superset-from-scratch-day-2-metadata-database.html"&gt;my Day 2 post&lt;/a&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;cat ~/.superset/superset.db
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;But what's this &lt;code&gt;DATA_DIR&lt;/code&gt; value and how is it computed? I did a quick search within &lt;code&gt;superset/superset/config.py&lt;/code&gt; and the first instance of &lt;code&gt;DATA_DIR&lt;/code&gt; is referenced here:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;SUPERSET_HOME&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt; &lt;span class="nv"&gt;in&lt;/span&gt; &lt;span class="nv"&gt;os&lt;/span&gt;.&lt;span class="nv"&gt;environ&lt;/span&gt;:
+    &lt;span class="nv"&gt;DATA_DIR&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;os&lt;/span&gt;.&lt;span class="nv"&gt;environ&lt;/span&gt;[&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;SUPERSET_HOME&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;]
+&lt;span class="k"&gt;else&lt;/span&gt;:
+    &lt;span class="nv"&gt;DATA_DIR&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;os&lt;/span&gt;.&lt;span class="nv"&gt;path&lt;/span&gt;.&lt;span class="nv"&gt;join&lt;/span&gt;&lt;span class="ss"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;os&lt;/span&gt;.&lt;span class="nv"&gt;path&lt;/span&gt;.&lt;span class="nv"&gt;expanduser&lt;/span&gt;&lt;span class="ss"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;~&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="ss"&gt;)&lt;/span&gt;, &lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;.superset&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="ss"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Because I didn't specifically set &lt;code&gt;SUPERSET_HOME&lt;/code&gt; in my environment variables, then the second code path is being evaluated instead:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;DATA_DIR = os.path.join(os.path.expanduser(&amp;quot;~&amp;quot;), &amp;quot;.superset&amp;quot;)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I quickly ran this in a new Python shell and the result mapped exactly to the &lt;code&gt;.superset/&lt;/code&gt; folder within my home directory:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Data Dir" src="/images/data_dir.png"&gt;&lt;/p&gt;
+&lt;p&gt;This means that &lt;code&gt;SQLALCHEMY_DATABASE_URI&lt;/code&gt; points to my metadata database, as expected. Progress!&lt;/p&gt;
+&lt;p&gt;Finally, this means that the &lt;code&gt;get_example_database()&lt;/code&gt; function will return the location to my sqlite database or it will create it if it doesn't exist (as the name &lt;code&gt;get_or_create_db()&lt;/code&gt; suggests):&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="nv"&gt;get_or_create_db&lt;/span&gt;&lt;span class="ss"&gt;(&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;&lt;span class="s"&gt;examples&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;&lt;/span&gt;, &lt;span class="nv"&gt;db_uri&lt;/span&gt;&lt;span class="ss"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The return value of &lt;code&gt;utils.get_example_database()&lt;/code&gt; is assigned to the &lt;code&gt;database&lt;/code&gt; variable.&lt;/p&gt;
+&lt;h3&gt;Superset Shell&lt;/h3&gt;
+&lt;p&gt;While reading function definitions is great, the only way to learn technical concepts is getting your hands dirty and actually running code yourself. &lt;/p&gt;
+&lt;p&gt;What's the best way to actually accomplish this though, while having the application lifecycle state loaded for me to interact with?&lt;/p&gt;
+&lt;p&gt;Some searching online led me to this &lt;a href="https://flask.palletsprojects.com/en/2.0.x/cli/#open-a-shell"&gt;page in the Flask docs&lt;/a&gt;, which mentions the following:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;To explore the data in your application, you can start an interactive Python shell with the shell command. An application context will be active, and the app instance will be imported.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;I also know that Superset extends many of the underlying Flask metaphors and I remember seeing &lt;code&gt;superset shell&lt;/code&gt; listed when running the Superset CLI:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;...
+run                       Run a development server.
+set-database-uri          Updates a database connection URI
+shell                     Run a shell in the app context.
+sync-tags                 Rebuilds special tags (owner, type, favorited
+...
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;I'm going to try this out:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;superset shell
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Excellent! I now have a shell environment with the Superset App context loaded in:&lt;/p&gt;
+&lt;p&gt;&lt;img alt="Superset Shell" src="/images/superset_shell.png"&gt;&lt;/p&gt;
+&lt;h3&gt;Next Steps&lt;/h3&gt;
+&lt;p&gt;I've run out of time for the day and will end here. Next, I want to step through all of the function calls in the World Health dashboard example using the Superset shell.&lt;/p&gt;</content><category term="Review"></category></entry><entry><title>Apache Superset from Scratch: Day 4 (Superset &amp; Flask Entrypoint)</title><link href="/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html" rel="alternate"></link><published>2021-12-26T10:20:00-05:00</published><updated>2021-12-26T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-26:/apache-superset-from-scratch-day-4-superset-flask-entrypoint.html</id><summary type="html">&lt;p&gt;I ended Day 3 by setting up the backend and frontend servers, but running into the following error.&lt;/p&gt;
 &lt;p&gt;&lt;img alt="Superset UI" src="/images/superset_ui.png"&gt;&lt;/p&gt;
 &lt;p&gt;For good measure, I'm going to shut down and restart the backend server. Success!&lt;/p&gt;
 &lt;p&gt;&lt;img alt="Superset UI Fixed" src="/images/superset_ui_fixed.png"&gt;&lt;/p&gt;
