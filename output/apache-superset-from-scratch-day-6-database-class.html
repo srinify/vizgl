@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch: Day 6 (Database Class)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; Copyright Srini Kadamati, 2021 to present">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+
+  <!-- Feeds
+  ================================================== -->
+  <link rel="alternate" type="application/atom+xml" href="/feeds/all.atom.xml" title="Srini Kadamati Full Atom Feed">
+
+
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+</head>
+<body>
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+<!-- Navigation
+================================================== -->
+<header>
+  <h1>Srini Kadamati</h1>
+  <nav>
+    <a href="/">Home</a> / 
+    <a href="/blog/">Blog</a> / 
+    <a href="/about/">About</a> / 
+    <a href="/feeds/all.atom.xml">RSS</a>
+  </nav> <!-- End navbar -->
+</header>		<section id="content">
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1>Apache Superset from Scratch: Day 6 (Database Class)</h1>
+  <h6>December 29, 2021
+  </h6>
+  <hr>
+
+  <!-- Article Content
+  ================================================================== -->
+  <p>I ended Day 5 with the knowledge of the Superset shell and a hunch that it might be a better tool for understanding the different code paths for how an example is loaded.</p>
+<p>Now I'm going to try running some commands to begin emulating what the app is doing when loading an example. First things first, let's run the <code>utils.get_example_database()</code> function call:</p>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="kn">from</span> <span class="nn">superset.utils</span> <span class="kn">import</span> <span class="n">core</span> <span class="k">as</span> <span class="n">utils</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">database</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_example_database</span><span class="p">()</span>
+<span class="o">&gt;&gt;&gt;</span> <span class="n">database</span>
+<span class="n">examples</span>
+</code></pre></div>
+
+<p>Interesting. Superset returns the string value "examples". This is likely just the string representation of the returned "Database" object. We know that the examples database in our Superset installation lives in my home directory, as a SQLite file. So running the next command within the <code>load_world_bank_health_n_pop()</code> function should give us that information:</p>
+<div class="highlight"><pre><span></span><code>&gt;&gt;&gt; engine = database.get_sqla_engine()
+&gt;&gt;&gt; engine
+Engine(sqlite:////Users/srinik/.superset/superset.db)
+</code></pre></div>
+
+<p>Success! </p>
+<h3>The Superset Database Class</h3>
+<p>Next, I want to better understand the returned <code>database</code> object. The class for Database is defined in  <code>superset/superset/models/core.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="n">Database</span>(
+    <span class="n">Model</span>, <span class="n">AuditMixinNullable</span>, <span class="n">ImportExportMixin</span>
+):  <span class="c1"># pylint: disable=too-many-public-methods</span>
+
+    <span class="s">&quot;&quot;&quot;An ORM object that stores Database related information&quot;&quot;&quot;</span>
+
+    <span class="n">__tablename__</span> = <span class="s">&quot;dbs&quot;</span>
+    <span class="nb">type</span> = <span class="s">&quot;table&quot;</span>
+    <span class="n">__table_args__</span> = (<span class="n">UniqueConstraint</span>(<span class="s">&quot;database_name&quot;</span>),)
+
+    <span class="nb">id</span> = <span class="n">Column</span>(<span class="n">Integer</span>, <span class="n">primary_key</span>=<span class="nb">True</span>)
+    <span class="n">verbose_name</span> = <span class="n">Column</span>(<span class="n">String</span>(<span class="mi">250</span>), <span class="nb">unique</span>=<span class="nb">True</span>)
+    <span class="c1"># short unique name, used in permissions</span>
+    <span class="n">database_name</span> = <span class="n">Column</span>(<span class="n">String</span>(<span class="mi">250</span>), <span class="nb">unique</span>=<span class="nb">True</span>, <span class="n">nullable</span>=<span class="nb">False</span>)
+    ...
+</code></pre></div>
+
+<p>This is the same file that has the model definition for the CSSTemplate class, as I stumbled into earlier in this series! At the top of <code>core.py</code> is the following text:</p>
+<blockquote>
+<p>A collection of ORM sqlalchemy models for Superset</p>
+</blockquote>
+<p>This file contains the class definitions for the following models:</p>
+<ul>
+<li>Url</li>
+<li>KeyValue</li>
+<li>CssTemplate</li>
+<li>ConfigurationMethod</li>
+<li>Database</li>
+<li>Log</li>
+<li>FavStarClassName</li>
+<li>FavStar</li>
+</ul>
+<p>Let's dive deeper into the Database class!</p>
+<p><strong>Columns / Fields</strong></p>
+<p>The Database class defined in <code>core.py</code> maps to the <strong>"dbs"</strong> table in the metadata database, as suggested by this line of code:</p>
+<div class="highlight"><pre><span></span><code>__tablename__ = &quot;dbs&quot;
+</code></pre></div>
+
+<p>What other columns are defined?</p>
+<ul>
+<li><code>id</code>: integer, primary key</li>
+<li><code>verbose_name</code>: string, to specify a more human-friendly name?</li>
+<li><code>database_name</code>: string, name of the database</li>
+<li><code>sqlalchemy_uri</code>: string, likely the URI sent to the underlying database driver to connect</li>
+<li><code>password</code>: salted password</li>
+<li><code>cache_timeout</code>: integer, corresponding to the cache timeout in seconds at the database level</li>
+<li><code>select_as_create_table_as</code>: boolean, not sure what this does</li>
+<li><code>expose_in_sqllab</code>: boolean, should this db be exposed in SQL Lab?</li>
+<li><code>configuration_method</code>: string, type of form used to configure?</li>
+<li>several <code>allow_</code> fields around async, file upload, CTAS, CVAS, DML, multi schema metadata fetch, and other user-configurable features</li>
+<li>several <code>extra_</code> fields around encryption, fields, etc.</li>
+<li><em>and more</em></li>
+</ul>
+<p><strong>String Representation</strong></p>
+<p>We know from our earlier exploration that running <code>print()</code> on a Superset Database object returns the database name. This aligns with the <code>__repr__()</code> definition for this model!</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">__repr__</span><span class="p">(</span><span class="kr">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">str</span><span class="o">:</span>
+        <span class="kr">return</span> <span class="kr">self</span><span class="p">.</span><span class="n">name</span>
+</code></pre></div>
+
+<p><strong>Name Attribute</strong></p>
+<p>If I call the <code>.name</code> attribute on a Database object, the following is evaluated:</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">name</span><span class="p">(</span><span class="kr">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">str</span><span class="o">:</span>
+    <span class="kr">return</span> <span class="kr">self</span><span class="p">.</span><span class="n">verbose_name</span> <span class="nf">if</span> <span class="kr">self</span><span class="p">.</span><span class="n">verbose_name</span> <span class="n">else</span> <span class="kr">self</span><span class="p">.</span><span class="n">database_name</span>
+</code></pre></div>
+
+<p>Interesting -- now we know how <code>verbose_name</code> is used! It's the preference for showing to humans, and <code>database_name</code> is the backup value displayed.</p>
+<p><strong>Data Attribute</strong></p>
+<p>What's next? The <code>.data</code> attribute looks interesting:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">@property</span><span class="w"></span>
+<span class="w">    </span><span class="n">def</span><span class="w"> </span><span class="k">data</span><span class="p">(</span><span class="n">self</span><span class="p">)</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">Dict</span><span class="o">[</span><span class="n">str, Any</span><span class="o">]</span><span class="err">:</span><span class="w"></span>
+</code></pre></div>
+
+<p>I want to run this for my Examples SQLite database and see what's returned:</p>
+<div class="highlight"><pre><span></span><code>&gt;&gt;&gt; database.data
+    {&#39;id&#39;: 1, 
+    &#39;name&#39;: &#39;examples&#39;, 
+    &#39;backend&#39;: &#39;sqlite&#39;, 
+    &#39;configuration_method&#39;: &#39;sqlalchemy_form&#39;, 
+    &#39;allow_multi_schema_metadata_fetch&#39;: False, 
+    &#39;allows_subquery&#39;: True, 
+    &#39;allows_cost_estimate&#39;: False, 
+    &#39;allows_virtual_table_explore&#39;: True, 
+    &#39;explore_database_id&#39;: 1, 
+    &#39;parameters&#39;: {}, 
+    &#39;parameters_schema&#39;: {}}
+</code></pre></div>
+
+<p><strong>Reserved Words</strong></p>
+<p>Neat! I can also retrieve the reserved words for the database:</p>
+<div class="highlight"><pre><span></span><code><span class="o">&gt;&gt;&gt;</span> <span class="n">database</span><span class="o">.</span><span class="n">get_reserved_words</span><span class="p">()</span>
+<span class="p">{</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;select&#39;</span><span class="p">,</span> <span class="s1">&#39;check&#39;</span><span class="p">,</span> <span class="s1">&#39;having&#39;</span><span class="p">,</span> <span class="s1">&#39;virtual&#39;</span><span class="p">,</span> <span class="s1">&#39;before&#39;</span><span class="p">,</span> <span class="s1">&#39;fail&#39;</span><span class="p">,</span> <span class="s1">&#39;conflict&#39;</span><span class="p">,</span> <span class="s1">&#39;current_timestamp&#39;</span><span class="p">,</span> <span class="s1">&#39;escape&#39;</span><span class="p">,</span> <span class="s1">&#39;full&#39;</span><span class="p">,</span> <span class="s1">&#39;case&#39;</span><span class="p">,</span> <span class="s1">&#39;references&#39;</span><span class="p">,</span> <span class="s1">&#39;drop&#39;</span><span class="p">,</span> <span class="s1">&#39;begin&#39;</span><span class="p">,</span> <span class="s1">&#39;cast&#39;</span><span class="p">,</span> <span class="s1">&#39;view&#39;</span><span class="p">,</span> <span class="s1">&#39;of&#39;</span><span class="p">,</span> <span class="s1">&#39;insert&#39;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">,</span> <span class="s1">&#39;outer&#39;</span><span class="p">,</span> <span class="s1">&#39;cascade&#39;</span><span class="p">,</span> <span class="s1">&#39;in&#39;</span><span class="p">,</span> <span class="s1">&#39;attach&#39;</span><span class="p">,</span> <span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="s1">&#39;vacuum&#39;</span><span class="p">,</span> <span class="s1">&#39;deferred&#39;</span><span class="p">,</span> <span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="s1">&#39;for&#39;</span><span class="p">,</span> <span class="s1">&#39;temporary&#39;</span><span class="p">,</span> <span class="s1">&#39;union&#39;</span><span class="p">,</span> <span class="s1">&#39;update&#39;</span><span class="p">,</span> <span class="s1">&#39;offset&#39;</span><span class="p">,</span> <span class="s1">&#39;as&#39;</span><span class="p">,</span> <span class="s1">&#39;where&#39;</span><span class="p">,</span> <span class="s1">&#39;transaction&#39;</span><span class="p">,</span> <span class="s1">&#39;explain&#39;</span><span class="p">,</span> <span class="s1">&#39;indexed&#39;</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="s1">&#39;limit&#39;</span><span class="p">,</span> <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="s1">&#39;pragma&#39;</span><span class="p">,</span> <span class="s1">&#39;unique&#39;</span><span class="p">,</span> <span class="s1">&#39;raise&#39;</span><span class="p">,</span> <span class="s1">&#39;initially&#39;</span><span class="p">,</span> <span class="s1">&#39;distinct&#39;</span><span class="p">,</span> <span class="s1">&#39;column&#39;</span><span class="p">,</span> <span class="s1">&#39;asc&#39;</span><span class="p">,</span> <span class="s1">&#39;notnull&#39;</span><span class="p">,</span> <span class="s1">&#39;null&#39;</span><span class="p">,</span> <span class="s1">&#39;between&#39;</span><span class="p">,</span> <span class="s1">&#39;rollback&#39;</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="s1">&#39;when&#39;</span><span class="p">,</span> <span class="s1">&#39;deferrable&#39;</span><span class="p">,</span> <span class="s1">&#39;detach&#39;</span><span class="p">,</span> <span class="s1">&#39;match&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;temp&#39;</span><span class="p">,</span> <span class="s1">&#39;isnull&#39;</span><span class="p">,</span> <span class="s1">&#39;join&#39;</span><span class="p">,</span> <span class="s1">&#39;trigger&#39;</span><span class="p">,</span> <span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="s1">&#39;from&#39;</span><span class="p">,</span> <span class="s1">&#39;autoincrement&#39;</span><span class="p">,</span> <span class="s1">&#39;ignore&#39;</span><span class="p">,</span> <span class="s1">&#39;after&#39;</span><span class="p">,</span> <span class="s1">&#39;table&#39;</span><span class="p">,</span> <span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="s1">&#39;alter&#39;</span><span class="p">,</span> <span class="s1">&#39;reindex&#39;</span><span class="p">,</span> <span class="s1">&#39;is&#39;</span><span class="p">,</span> <span class="s1">&#39;intersect&#39;</span><span class="p">,</span> <span class="s1">&#39;primary&#39;</span><span class="p">,</span> <span class="s1">&#39;then&#39;</span><span class="p">,</span> <span class="s1">&#39;and&#39;</span><span class="p">,</span> <span class="s1">&#39;set&#39;</span><span class="p">,</span> <span class="s1">&#39;like&#39;</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span> <span class="s1">&#39;by&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span> <span class="s1">&#39;else&#39;</span><span class="p">,</span> <span class="s1">&#39;rename&#39;</span><span class="p">,</span> <span class="s1">&#39;plan&#39;</span><span class="p">,</span> <span class="s1">&#39;except&#39;</span><span class="p">,</span> <span class="s1">&#39;row&#39;</span><span class="p">,</span> <span class="s1">&#39;instead&#39;</span><span class="p">,</span> <span class="s1">&#39;natural&#39;</span><span class="p">,</span> <span class="s1">&#39;analyze&#39;</span><span class="p">,</span> <span class="s1">&#39;foreign&#39;</span><span class="p">,</span> <span class="s1">&#39;database&#39;</span><span class="p">,</span> <span class="s1">&#39;if&#39;</span><span class="p">,</span> <span class="s1">&#39;current_time&#39;</span><span class="p">,</span> <span class="s1">&#39;glob&#39;</span><span class="p">,</span> <span class="s1">&#39;current_date&#39;</span><span class="p">,</span> <span class="s1">&#39;cross&#39;</span><span class="p">,</span> <span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="s1">&#39;values&#39;</span><span class="p">,</span> <span class="s1">&#39;into&#39;</span><span class="p">,</span> <span class="s1">&#39;constraint&#39;</span><span class="p">,</span> <span class="s1">&#39;exists&#39;</span><span class="p">,</span> <span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;delete&#39;</span><span class="p">,</span> <span class="s1">&#39;each&#39;</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">,</span> <span class="s1">&#39;false&#39;</span><span class="p">,</span> <span class="s1">&#39;commit&#39;</span><span class="p">,</span> <span class="s1">&#39;exclusive&#39;</span><span class="p">,</span> <span class="s1">&#39;immediate&#39;</span><span class="p">,</span> <span class="s1">&#39;restrict&#39;</span><span class="p">,</span> <span class="s1">&#39;not&#39;</span><span class="p">,</span> <span class="s1">&#39;create&#39;</span><span class="p">,</span> <span class="s1">&#39;desc&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">,</span> <span class="s1">&#39;using&#39;</span><span class="p">,</span> <span class="s1">&#39;replace&#39;</span><span class="p">,</span> <span class="s1">&#39;collate&#39;</span><span class="p">}</span>
+</code></pre></div>
+
+<p><strong>Previewing Raw Data</strong></p>
+<p>I want to peek at the data in my SQLite database. The <a href="https://sqlitebrowser.org/dl/">DB Browser for SQLite app</a> on Mac is a good option for this. Better yet, once installed, I can use my terminal to pass the app the file location of my sqlite DB!</p>
+<div class="highlight"><pre><span></span><code><span class="nv">open</span> <span class="o">-</span><span class="nv">a</span> <span class="s2">&quot;</span><span class="s">DB Browser for SQLite</span><span class="s2">&quot;</span> <span class="o">/</span><span class="nv">Users</span><span class="o">/</span><span class="nv">srinik</span><span class="o">/</span>.<span class="nv">superset</span><span class="o">/</span><span class="nv">superset</span>.<span class="nv">db</span>
+</code></pre></div>
+
+<p>And voila!</p>
+<p><img alt="DB Browser" src="/images/db_browser.png"></p>
+<p>Let's preview the <code>dbs</code> table (which corresponds to the Database model).</p>
+<p><img alt="DB Browser DBs" src="/images/db_browser_dbs.png"></p>
+<p>It's nice to see all of the columns reflected here from the Database model.</p>
+<h3>World Health Dashboard: Examples Database</h3>
+<p>Let's revisit the <code>load_world_bank_health_n_pop()</code> function that loads the World Health Dashboard.</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">load_world_bank_health_n_pop</span><span class="p">(</span>  <span class="c1"># pylint: disable=too-many-locals, too-many-statements</span>
+    <span class="n">only_metadata</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="nb nb-Type">bool</span> <span class="o">=</span> <span class="n">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Loads the world bank health dataset, slices and a dashboard&quot;&quot;&quot;</span>
+
+    <span class="n">tbl_name</span> <span class="o">=</span> <span class="s2">&quot;wb_health_population&quot;</span>
+    <span class="n">database</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_example_database</span><span class="p">()</span>
+    <span class="n">engine</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">get_sqla_engine</span><span class="p">()</span>
+    <span class="n">schema</span> <span class="o">=</span> <span class="n">inspect</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span><span class="o">.</span><span class="n">default_schema_name</span>
+    <span class="n">table_exists</span> <span class="o">=</span> <span class="n">database</span><span class="o">.</span><span class="n">has_table_by_name</span><span class="p">(</span><span class="n">tbl_name</span><span class="p">)</span>
+</code></pre></div>
+
+<p>This code does the following:</p>
+<ul>
+<li>Sets the table name to <code>wb_health_population</code></li>
+<li>Uses utility functions to fetch the Database object corresponding to the <code>examples</code> database (or creates it if it isn't there)</li>
+<li>Retrieves the SQLAlchemy engine for this specific database flavor (from the <code>db_engine_specs</code> folder) so queries can be made to the database.</li>
+<li>Retrieves the default schema name if it exists.</li>
+<li>Confirms if the <code>wb_health_population</code> table exists or not.</li>
+</ul>
+<h3>World Health Dashboard: Pandas Transformation</h3>
+<p>As someone who's spent years writing pandas code, the next part of of the <code>load_world_bank_health_n_pop()</code> function looks very familiar:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="k">not</span> <span class="n">only_metadata</span> <span class="k">and</span> <span class="p">(</span><span class="k">not</span> <span class="n">table_exists</span> <span class="k">or</span> <span class="k">force</span><span class="p">)</span><span class="o">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">get_example_data</span><span class="p">(</span><span class="s">&quot;countries.json.gz&quot;</span><span class="p">)</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="n">read_json</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">pdf</span><span class="p">.</span><span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span><span class="p">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">,</span> <span class="s">&quot;_&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="n">in</span> <span class="n">pdf</span><span class="p">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">database</span><span class="p">.</span><span class="n">backend</span> <span class="o">==</span> <span class="s">&quot;presto&quot;</span><span class="o">:</span>
+            <span class="n">pdf</span><span class="p">.</span><span class="n">year</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">pdf</span><span class="p">.</span><span class="n">year</span><span class="p">)</span>
+            <span class="n">pdf</span><span class="p">.</span><span class="n">year</span> <span class="o">=</span> <span class="n">pdf</span><span class="p">.</span><span class="n">year</span><span class="p">.</span><span class="n">dt</span><span class="p">.</span><span class="n">strftime</span><span class="p">(</span><span class="s">&quot;%Y-%m-%d %H:%M%:%S&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="o">:</span>
+            <span class="n">pdf</span><span class="p">.</span><span class="n">year</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="n">to_datetime</span><span class="p">(</span><span class="n">pdf</span><span class="p">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="n">pdf</span> <span class="o">=</span> <span class="n">pdf</span><span class="p">.</span><span class="n">head</span><span class="p">(</span><span class="mh">100</span><span class="p">)</span> <span class="k">if</span> <span class="n">sample</span> <span class="k">else</span> <span class="n">pdf</span>
+
+        <span class="n">pdf</span><span class="p">.</span><span class="n">to_sql</span><span class="p">(</span>
+            <span class="n">tbl_name</span><span class="p">,</span>
+            <span class="n">engine</span><span class="p">,</span>
+            <span class="n">schema</span><span class="o">=</span><span class="n">schema</span><span class="p">,</span>
+            <span class="n">if_exists</span><span class="o">=</span><span class="s">&quot;replace&quot;</span><span class="p">,</span>
+            <span class="n">chunksize</span><span class="o">=</span><span class="mh">50</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="p">{</span>
+                <span class="p">#</span> <span class="n">TODO</span><span class="p">(</span><span class="n">bkyryliuk</span><span class="p">)</span><span class="o">:</span> <span class="n">use</span> <span class="n">TIMESTAMP</span> <span class="k">type</span> <span class="k">for</span> <span class="n">presto</span>
+                <span class="s">&quot;year&quot;</span><span class="o">:</span> <span class="n">DateTime</span> <span class="k">if</span> <span class="n">database</span><span class="p">.</span><span class="n">backend</span> <span class="o">!=</span> <span class="s">&quot;presto&quot;</span> <span class="k">else</span> <span class="n">String</span><span class="p">(</span><span class="mh">255</span><span class="p">),</span>
+                <span class="s">&quot;country_code&quot;</span><span class="o">:</span> <span class="n">String</span><span class="p">(</span><span class="mh">3</span><span class="p">),</span>
+                <span class="s">&quot;country_name&quot;</span><span class="o">:</span> <span class="n">String</span><span class="p">(</span><span class="mh">255</span><span class="p">),</span>
+                <span class="s">&quot;region&quot;</span><span class="o">:</span> <span class="n">String</span><span class="p">(</span><span class="mh">255</span><span class="p">),</span>
+            <span class="p">},</span>
+            <span class="n">method</span><span class="o">=</span><span class="s">&quot;multi&quot;</span><span class="p">,</span>
+            <span class="n">index</span><span class="o">=</span><span class="n">False</span><span class="p">,</span>
+        <span class="p">)</span>
+</code></pre></div>
+
+<p>Here's my breakdown of the code:</p>
+<ul>
+<li><code>data = get_example_data("countries.json.gz")</code>:<ul>
+<li><code>get_example_data()</code> is a helper function that fetches the gzipped JSON dataset for this example from <code>https://github.com/apache-superset/examples-data/blob/master/countries.json.gz</code></li>
+</ul>
+</li>
+<li><code>pdf = pd.read_json(data)</code>: <ul>
+<li>read in JSON as a pandas dataframe</li>
+</ul>
+</li>
+<li><code>pdf.columns = [col.replace(".", "_") for col in pdf.columns]</code>: <ul>
+<li>replace any periods with <code>_</code>, so the database is happy</li>
+</ul>
+</li>
+<li><code>if database.backend == "presto":</code> if the examples Database object points to a Presto database, do some specific datetime conversion for Presto.</li>
+<li><code>pdf.to_sql()</code>: use the <code>pandas.DataFrame.to_sql()</code> method to generate a SQLAlchemy 'query' to insert data into the database.</li>
+</ul>
+<p>Phew! That's it for today. Tomorrow, I want to finish understanding how the Superset-specific metadata is loaded.</p>
+		</section>
+<footer>
+  <hr class="small">
+  <center>
+  <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
+  </center>
+</footer>	</div><!-- container -->
+
+<!-- Google Analytics
+================================================== -->
+  <script>
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga('create', 'UA-215861180-1', 'auto');
+  ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
