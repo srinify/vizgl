@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch: Day 7 (Metadata for Examples)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; Copyright Srini Kadamati, 2021 to present">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <link rel="stylesheet" href="https://fonts.xz.style/serve/inter.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+
+  <!-- Feeds
+  ================================================== -->
+  <link rel="alternate" type="application/atom+xml" href="/feeds/all.atom.xml" title="Srini Kadamati Full Atom Feed">
+
+
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+</head>
+<body>
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+<!-- Navigation
+================================================== -->
+<header>
+  <h1>Srini Kadamati</h1>
+  <nav>
+    <a href="/">Home</a> / 
+    <a href="/blog/">Blog</a> / 
+    <a href="/about/">About</a> / 
+    <a href="/feeds/all.atom.xml">RSS</a>
+  </nav> <!-- End navbar -->
+</header>		<section id="content">
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1>Apache Superset from Scratch: Day 7 (Metadata for Examples)</h1>
+  <h6>December 30, 2021
+  </h6>
+  <hr>
+
+  <!-- Article Content
+  ================================================================== -->
+  <p>I ended Day 6 with a good understanding of the first half of the <code>load_world_bank_health_n_pop()</code> function, which loads the World Health dashboard example. Today, I'm hoping to understand the rest of the function if possible.</p>
+<p>The next line of code is:</p>
+<div class="highlight"><pre><span></span><code><span class="k">table</span> <span class="o">=</span> <span class="n">get_table_connector_registry</span><span class="p">()</span>
+</code></pre></div>
+
+<p>The <code>get_table_connector_registry()</code> function seems to be defined in <code>superset/superset/examples/helpers.py</code>. The function definition is very simple:</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">get_table_connector_registry</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nl">Any:</span>
+    <span class="k">return</span> <span class="n">ConnectorRegistry</span><span class="p">.</span><span class="n">sources</span><span class="p">[</span><span class="s">&quot;table&quot;</span><span class="p">]</span>
+</code></pre></div>
+
+<h3>Helper Functions for Superset Examples</h3>
+<p>This function is so simple, I'm even wondering why this function needs to exist. </p>
+<blockquote>
+<p>Why can't <code>ConnectorRegistry.sources["table"]</code> just be defined directly in the <code>load_world_bank_health_n_pop()</code> function within <code>world_bank.py</code>?</p>
+</blockquote>
+<p>Let me take a peek at the rest of the functions in <code>superset/examples/helpers.py</code> to try to gain more context:</p>
+<ul>
+<li><code>get_table_connector_registry()</code>: yet to be determined!</li>
+<li><code>get_examples_folder()</code>: returns exact path to where example datasets, dashboards, etc are stored.</li>
+<li><code>update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice])</code>: does some type of sorting of slices</li>
+<li><code>merge_slice(slc: Slice)</code>: deletes existing Slice and creates new one in its place</li>
+<li><code>get_slice_json(defaults: Dict[Any, Any], **kwargs: Any)</code>: unclear! But something around JSON representation of Slice objects.</li>
+<li><code>get_example_data(filepath: str, is_gzip: bool = True, make_bytes: bool = False)</code>: common utility function for fetching JSON dataset from a URL and reading in the bytes (we saw this earlier!)</li>
+</ul>
+<p>These all smell like functions that any example-loading script can benefit from and re-use. So it makes sense that they're all defined here for common use.</p>
+<h3>Why ConnectorRegistry?</h3>
+<p>ConnectorRegistry sounds interesting, as it sounds like some type of registry that maintains the available database connectors in the current Superset installation. This lead me to the following question:</p>
+<blockquote>
+<p>Why not store the available connectors in the metadata database?</p>
+</blockquote>
+<p>My hunch is that this adds extra friction, slows down the development process, and doesn't add too much. </p>
+<p>You can imagine a Superset contributor having multiple local git branches and wanting to quickly switch between them. In my past life as a backend engineer, I've personally experienced the pains of database state causing issues between versions of the same software.</p>
+<p>For connectors, the <em>state</em> itself is likely defined entirely in the code itself. </p>
+<ul>
+<li>The connector libraries are either defined in code that lives in the source tree, or they aren't!</li>
+<li>The <code>db_engine_spec</code> for a given database either exists in the source tree, or it doesn't!</li>
+</ul>
+<p>Let's move on to the implementation for ConnectorRegistry.</p>
+<h3>Connector Registry</h3>
+<p>Where is the ConnectorRegistry class defined? The comment at the top for the class definition is:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">Central</span> <span class="nv">Registry</span> <span class="k">for</span> <span class="nv">all</span> <span class="nv">available</span> <span class="nv">datasource</span> <span class="nv">engines</span>
+</code></pre></div>
+
+<p>In <code>superset/superset/connectors/connector_registry.py</code>, the ConnectorRegistry class is defined with the following class methods.</p>
+<ul>
+<li><code>register_sources()</code></li>
+<li><code>get_datasource()</code></li>
+<li><code>get_all_datasources()</code></li>
+<li><code>get_datasource_by_id()</code></li>
+<li><code>get_datasource_by_name()</code></li>
+<li><code>query_datasources_by_permissions()</code></li>
+<li><code>get_eager_datasource()</code></li>
+<li><code>query_datasources_by_name()</code></li>
+</ul>
+<p>Because the ConnectorRegistry class acts as a source of truth, it can just have class methods that other parts of the codebase can call to look up information. It won't ever be instantiated into individual objects.</p>
+<p>The <code>register_sources()</code> class method piqued my interest, as it probably <em>registers</em> new data sources. When is this actually called though? It's only called in <code>superset/superset/initialization/__init__.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">def</span> <span class="n">configure_data_sources</span><span class="p">(</span><span class="n">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nl">None:</span>
+    <span class="p">#</span> <span class="n">Registering</span> <span class="n">sources</span>
+    <span class="n">module_datasource_map</span> <span class="o">=</span> <span class="n">self</span><span class="p">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;DEFAULT_MODULE_DS_MAP&quot;</span><span class="p">]</span>
+    <span class="n">module_datasource_map</span><span class="p">.</span><span class="n">update</span><span class="p">(</span><span class="n">self</span><span class="p">.</span><span class="n">config</span><span class="p">[</span><span class="s">&quot;ADDITIONAL_MODULE_DS_MAP&quot;</span><span class="p">])</span>
+    <span class="n">ConnectorRegistry</span><span class="p">.</span><span class="n">register_sources</span><span class="p">(</span><span class="n">module_datasource_map</span><span class="p">)</span>
+</code></pre></div>
+
+<p>This makes sense. The possible data source engines only need to be registered during the flask app initialization.</p>
+<p>What is the default value set to <code>"DEFAULT_MODULE_DS_MAP</code>?</p>
+<div class="highlight"><pre><span></span><code>DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&quot;superset.connectors.sqla.models&quot;, [&quot;SqlaTable&quot;]),
+        (&quot;superset.connectors.druid.models&quot;, [&quot;DruidDatasource&quot;]),
+    ]
+</code></pre></div>
+
+<p>What is the default value set to <code>"ADDITIONAL_MODULE_DS_MAP"</code>?</p>
+<div class="highlight"><pre><span></span><code><span class="nl">ADDITIONAL_MODULE_DS_MAP</span><span class="p">:</span><span class="w"> </span><span class="n">Dict</span><span class="o">[</span><span class="n">str, List[str</span><span class="o">]</span><span class="err">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="err">{}</span><span class="w"></span>
+</code></pre></div>
+
+<p>So this code path essentially returns an Ordered Dictionary of values. Interesting.</p>
+<p>Let's circle back to <code>get_table_connector_registry()</code>, which essentially boils down to:</p>
+<div class="highlight"><pre><span></span><code>ConnectorRegistry.sources[&quot;table&quot;]
+</code></pre></div>
+
+<p>This code references the following class variable:</p>
+<div class="highlight"><pre><span></span><code><span class="k">class</span> <span class="n">ConnectorRegistry:</span>
+    <span class="s">&quot;&quot;&quot;Central Registry for all available datasource engines&quot;&quot;&quot;</span>
+
+    <span class="n">sources:</span> <span class="n">Dict</span>[<span class="n">str</span>, <span class="n">Type</span>[<span class="s">&quot;BaseDatasource&quot;</span>]] = {}
+</code></pre></div>
+
+<p>What does this value look like for our current Superset instance?</p>
+<div class="highlight"><pre><span></span><code>&gt;&gt;&gt; ConnectorRegistry.sources
+{&#39;table&#39;: &lt;class &#39;superset.connectors.sqla.models.SqlaTable&#39;&gt;, &#39;druid&#39;: &lt;class &#39;superset.connectors.druid.models.DruidDatasource&#39;&gt;}
+</code></pre></div>
+
+<p>From Superset's stand point, databases are either:</p>
+<ul>
+<li>a Druid data source, connected using the legacy Druid connector, in which case the datasets are JSON (I think)</li>
+<li>a SQAlchemy data source, in which case the datasets are all tables</li>
+</ul>
+<p>The returned dictionary matches the default value set to <code>"DEFAULT_MODULE_DS_MAP</code>:</p>
+<div class="highlight"><pre><span></span><code>DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&quot;superset.connectors.sqla.models&quot;, [&quot;SqlaTable&quot;]),
+        (&quot;superset.connectors.druid.models&quot;, [&quot;DruidDatasource&quot;]),
+    ]
+</code></pre></div>
+
+<p>This <em>seems</em> like a LOT of steps and code just to return a tiny dictionary of values!</p>
+<blockquote>
+<p>ConnectorRegistry doesn't even seem to return the actual <em>database connectors</em> that are registered. This is a bit weird!</p>
+</blockquote>
+<p>Interestingly, the SqlaTable class does warrant further investigation. It seems to be an ORM model / wrapper for the SQLAlchemy table objects with some Superset-specific niceities.</p>
+<h3>Searching for a Table</h3>
+<p>After returning the SQLAlchemy compatible module name and class using the ConnectorRegistry, here's the next line of code:</p>
+<div class="highlight"><pre><span></span><code>tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
+</code></pre></div>
+
+<p>This code uses SQLAlchemy syntax to generate a SQL query that returns the "wb_health_population" table. It handles multiple results and focuses on just the ones from SQLAlchemy databases that Superset is aware of. Specifically, it returns a SqlaTable object and assigns to <code>tbl</code>.</p>
+<p>The next code fragment creates the table if it doesn't exist:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="nv">not</span> <span class="nv">tbl</span>:
+    <span class="nv">tbl</span> <span class="o">=</span> <span class="nv">table</span><span class="ss">(</span><span class="nv">table_name</span><span class="o">=</span><span class="nv">tbl_name</span>, <span class="nv">schema</span><span class="o">=</span><span class="nv">schema</span><span class="ss">)</span>
+</code></pre></div>
+
+<p>Next up, this code reads in "countries.md", which contains information on the World Health dataset. Then, it attaches this information to the description column for the SqlaTable object:</p>
+<div class="highlight"><pre><span></span><code>tbl.description = utils.readfile(
+    os.path.join(get_examples_folder(), &quot;countries.md&quot;)
+)
+</code></pre></div>
+
+<p>The next three lines of code set values to three more columns within this SqlaTable object:</p>
+<div class="highlight"><pre><span></span><code>tbl.main_dttm_col = &quot;year&quot;
+tbl.database = database
+tbl.filter_select_enabled = True
+</code></pre></div>
+
+<h3>Defining Metrics for World Health Dashboard</h3>
+<p>The raw metrics that need to be created to power this Superset dashboard are represented as the following strings:</p>
+<div class="highlight"><pre><span></span><code>metrics = [
+    &quot;sum__SP_POP_TOTL&quot;,
+    &quot;sum__SH_DYN_AIDS&quot;,
+    &quot;sum__SH_DYN_AIDS&quot;,
+    &quot;sum__SP_RUR_TOTL_ZS&quot;,
+    &quot;sum__SP_DYN_LE00_IN&quot;,
+    &quot;sum__SP_RUR_TOTL&quot;,
+]
+</code></pre></div>
+
+<p>The next block of code does the following for each metric-string:</p>
+<ul>
+<li>searches all of the <code>tbl</code> object's <code>metrics</code> to check if it already exists</li>
+<li>slices the metric-string to extract first 3 characters (e.g. "sum")</li>
+<li>uses SQLAlchemy to search for the column that will be aggregated</li>
+<li>appends the metric to <code>tbl.metrics</code>, using the <code>SqlMetric</code> class</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">any</span><span class="p">(</span><span class="n">col</span><span class="o">.</span><span class="n">metric_name</span> <span class="o">==</span> <span class="n">metric</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">tbl</span><span class="o">.</span><span class="n">metrics</span><span class="p">):</span>
+        <span class="n">aggr_func</span> <span class="o">=</span> <span class="n">metric</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">col</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">column</span><span class="p">(</span><span class="n">metric</span><span class="p">[</span><span class="mi">5</span><span class="p">:])</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">db</span><span class="o">.</span><span class="n">engine</span><span class="p">))</span>
+        <span class="n">tbl</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">SqlMetric</span><span class="p">(</span><span class="n">metric_name</span><span class="o">=</span><span class="n">metric</span><span class="p">,</span> <span class="n">expression</span><span class="o">=</span><span class="n">f</span><span class="s2">&quot;{aggr_func}({col})&quot;</span><span class="p">)</span>
+        <span class="p">)</span>
+</code></pre></div>
+
+<p>The next three lines seem to commit these changes to the database and re-fetch the metadata:</p>
+<div class="highlight"><pre><span></span><code>db.session.merge(tbl)
+db.session.commit()
+tbl.fetch_metadata()
+</code></pre></div>
+
+<p>We're nearly done understanding the World Health dashboard example! But I've run out of time for today. I'll save this for Day 8!</p>
+		</section>
+<footer>
+  <hr class="small">
+  <center>
+  <p>Built with <a href="http://getpelican.com">Pelican</a> and the <a href="https://github.com/gjreda/newbird-pelican-theme">newbird</a> theme</p>
+  <p>&copy; Copyright Srini Kadamati, 2013 to present</p>
+  </center>
+</footer>	</div><!-- container -->
+
+<!-- Google Analytics
+================================================== -->
+  <script>
+  window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+  ga('create', 'UA-215861180-1', 'auto');
+  ga('send', 'pageview');
+  </script>
+  <script async src='https://www.google-analytics.com/analytics.js'></script>
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
