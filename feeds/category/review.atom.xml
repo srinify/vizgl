@@ -1,5 +1,175 @@
 <?xml version="1.0" encoding="utf-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-29T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 6 (Database Class)</title><link href="/apache-superset-from-scratch-day-6-database-class.html" rel="alternate"></link><published>2021-12-29T10:20:00-05:00</published><updated>2021-12-29T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-29:/apache-superset-from-scratch-day-6-database-class.html</id><summary type="html">&lt;p&gt;I ended Day 5 with the knowledge of the Superset shell and a hunch that it might be a better tool for understanding the different code paths for how an example is loaded.&lt;/p&gt;
+<feed xmlns="http://www.w3.org/2005/Atom"><title>Srini Kadamati - Review</title><link href="/" rel="alternate"></link><link href="/feeds/category/review.atom.xml" rel="self"></link><id>/</id><updated>2021-12-30T10:20:00-05:00</updated><entry><title>Apache Superset from Scratch: Day 7 (Metadata for Examples)</title><link href="/apache-superset-from-scratch-day-7-metadata-for-examples.html" rel="alternate"></link><published>2021-12-30T10:20:00-05:00</published><updated>2021-12-30T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-30:/apache-superset-from-scratch-day-7-metadata-for-examples.html</id><summary type="html">&lt;p&gt;I ended Day 6 with a good understanding of the first half of the &lt;code&gt;load_world_bank_health_n_pop()&lt;/code&gt; function, which loads the World Health dashboard example. Today, I'm hoping to understand the rest of the function if possible.&lt;/p&gt;
+&lt;p&gt;The next line of code is:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;table&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_table_connector …&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;</summary><content type="html">&lt;p&gt;I ended Day 6 with a good understanding of the first half of the &lt;code&gt;load_world_bank_health_n_pop()&lt;/code&gt; function, which loads the World Health dashboard example. Today, I'm hoping to understand the rest of the function if possible.&lt;/p&gt;
+&lt;p&gt;The next line of code is:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;table&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;get_table_connector_registry&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The &lt;code&gt;get_table_connector_registry()&lt;/code&gt; function seems to be defined in &lt;code&gt;superset/superset/examples/helpers.py&lt;/code&gt;. The function definition is very simple:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;get_table_connector_registry&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="nl"&gt;Any:&lt;/span&gt;
+    &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;ConnectorRegistry&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;sources&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;table&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3&gt;Helper Functions for Superset Examples&lt;/h3&gt;
+&lt;p&gt;This function is so simple, I'm even wondering why this function needs to exist. &lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Why can't &lt;code&gt;ConnectorRegistry.sources["table"]&lt;/code&gt; just be defined directly in the &lt;code&gt;load_world_bank_health_n_pop()&lt;/code&gt; function within &lt;code&gt;world_bank.py&lt;/code&gt;?&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Let me take a peek at the rest of the functions in &lt;code&gt;superset/examples/helpers.py&lt;/code&gt; to try to gain more context:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;get_table_connector_registry()&lt;/code&gt;: yet to be determined!&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_examples_folder()&lt;/code&gt;: returns exact path to where example datasets, dashboards, etc are stored.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice])&lt;/code&gt;: does some type of sorting of slices&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;merge_slice(slc: Slice)&lt;/code&gt;: deletes existing Slice and creates new one in its place&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_slice_json(defaults: Dict[Any, Any], **kwargs: Any)&lt;/code&gt;: unclear! But something around JSON representation of Slice objects.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_example_data(filepath: str, is_gzip: bool = True, make_bytes: bool = False)&lt;/code&gt;: common utility function for fetching JSON dataset from a URL and reading in the bytes (we saw this earlier!)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;These all smell like functions that any example-loading script can benefit from and re-use. So it makes sense that they're all defined here for common use.&lt;/p&gt;
+&lt;h3&gt;Why ConnectorRegistry?&lt;/h3&gt;
+&lt;p&gt;ConnectorRegistry sounds interesting, as it sounds like some type of registry that maintains the available database connectors in the current Superset installation. This lead me to the following question:&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Why not store the available connectors in the metadata database?&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;My hunch is that this adds extra friction, slows down the development process, and doesn't add too much. &lt;/p&gt;
+&lt;p&gt;You can imagine a Superset contributor having multiple local git branches and wanting to quickly switch between them. In my past life as a backend engineer, I've personally experienced the pains of database state causing issues between versions of the same software.&lt;/p&gt;
+&lt;p&gt;For connectors, the &lt;em&gt;state&lt;/em&gt; itself is likely defined entirely in the code itself. &lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;The connector libraries are either defined in code that lives in the source tree, or they aren't!&lt;/li&gt;
+&lt;li&gt;The &lt;code&gt;db_engine_spec&lt;/code&gt; for a given database either exists in the source tree, or it doesn't!&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Let's move on to the implementation for ConnectorRegistry.&lt;/p&gt;
+&lt;h3&gt;Connector Registry&lt;/h3&gt;
+&lt;p&gt;Where is the ConnectorRegistry class defined? The comment at the top for the class definition is:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nv"&gt;Central&lt;/span&gt; &lt;span class="nv"&gt;Registry&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="nv"&gt;all&lt;/span&gt; &lt;span class="nv"&gt;available&lt;/span&gt; &lt;span class="nv"&gt;datasource&lt;/span&gt; &lt;span class="nv"&gt;engines&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;In &lt;code&gt;superset/superset/connectors/connector_registry.py&lt;/code&gt;, the ConnectorRegistry class is defined with the following class methods.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;register_sources()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_datasource()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_all_datasources()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_datasource_by_id()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_datasource_by_name()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;query_datasources_by_permissions()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;get_eager_datasource()&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;query_datasources_by_name()&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Because the ConnectorRegistry class acts as a source of truth, it can just have class methods that other parts of the codebase can call to look up information. It won't ever be instantiated into individual objects.&lt;/p&gt;
+&lt;p&gt;The &lt;code&gt;register_sources()&lt;/code&gt; class method piqued my interest, as it probably &lt;em&gt;registers&lt;/em&gt; new data sources. When is this actually called though? It's only called in &lt;code&gt;superset/superset/initialization/__init__.py&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="n"&gt;def&lt;/span&gt; &lt;span class="n"&gt;configure_data_sources&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;-&amp;gt;&lt;/span&gt; &lt;span class="nl"&gt;None:&lt;/span&gt;
+    &lt;span class="p"&gt;#&lt;/span&gt; &lt;span class="n"&gt;Registering&lt;/span&gt; &lt;span class="n"&gt;sources&lt;/span&gt;
+    &lt;span class="n"&gt;module_datasource_map&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;DEFAULT_MODULE_DS_MAP&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+    &lt;span class="n"&gt;module_datasource_map&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;update&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;self&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;config&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="s"&gt;&amp;quot;ADDITIONAL_MODULE_DS_MAP&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;])&lt;/span&gt;
+    &lt;span class="n"&gt;ConnectorRegistry&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;register_sources&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;module_datasource_map&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This makes sense. The possible data source engines only need to be registered during the flask app initialization.&lt;/p&gt;
+&lt;p&gt;What is the default value set to &lt;code&gt;"DEFAULT_MODULE_DS_MAP&lt;/code&gt;?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&amp;quot;superset.connectors.sqla.models&amp;quot;, [&amp;quot;SqlaTable&amp;quot;]),
+        (&amp;quot;superset.connectors.druid.models&amp;quot;, [&amp;quot;DruidDatasource&amp;quot;]),
+    ]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;What is the default value set to &lt;code&gt;"ADDITIONAL_MODULE_DS_MAP"&lt;/code&gt;?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="nl"&gt;ADDITIONAL_MODULE_DS_MAP&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;Dict&lt;/span&gt;&lt;span class="o"&gt;[&lt;/span&gt;&lt;span class="n"&gt;str, List[str&lt;/span&gt;&lt;span class="o"&gt;]&lt;/span&gt;&lt;span class="err"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="err"&gt;{}&lt;/span&gt;&lt;span class="w"&gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;So this code path essentially returns an Ordered Dictionary of values. Interesting.&lt;/p&gt;
+&lt;p&gt;Let's circle back to &lt;code&gt;get_table_connector_registry()&lt;/code&gt;, which essentially boils down to:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;ConnectorRegistry.sources[&amp;quot;table&amp;quot;]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This code references the following class variable:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="n"&gt;ConnectorRegistry:&lt;/span&gt;
+    &lt;span class="s"&gt;&amp;quot;&amp;quot;&amp;quot;Central Registry for all available datasource engines&amp;quot;&amp;quot;&amp;quot;&lt;/span&gt;
+
+    &lt;span class="n"&gt;sources:&lt;/span&gt; &lt;span class="n"&gt;Dict&lt;/span&gt;[&lt;span class="n"&gt;str&lt;/span&gt;, &lt;span class="n"&gt;Type&lt;/span&gt;[&lt;span class="s"&gt;&amp;quot;BaseDatasource&amp;quot;&lt;/span&gt;]] = {}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;What does this value look like for our current Superset instance?&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&amp;gt;&amp;gt;&amp;gt; ConnectorRegistry.sources
+{&amp;#39;table&amp;#39;: &amp;lt;class &amp;#39;superset.connectors.sqla.models.SqlaTable&amp;#39;&amp;gt;, &amp;#39;druid&amp;#39;: &amp;lt;class &amp;#39;superset.connectors.druid.models.DruidDatasource&amp;#39;&amp;gt;}
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;From Superset's stand point, databases are either:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;a Druid data source, connected using the legacy Druid connector, in which case the datasets are JSON (I think)&lt;/li&gt;
+&lt;li&gt;a SQAlchemy data source, in which case the datasets are all tables&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;The returned dictionary matches the default value set to &lt;code&gt;"DEFAULT_MODULE_DS_MAP&lt;/code&gt;:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&amp;quot;superset.connectors.sqla.models&amp;quot;, [&amp;quot;SqlaTable&amp;quot;]),
+        (&amp;quot;superset.connectors.druid.models&amp;quot;, [&amp;quot;DruidDatasource&amp;quot;]),
+    ]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This &lt;em&gt;seems&lt;/em&gt; like a LOT of steps and code just to return a tiny dictionary of values!&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;ConnectorRegistry doesn't even seem to return the actual &lt;em&gt;database connectors&lt;/em&gt; that are registered. This is a bit weird!&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;Interestingly, the SqlaTable class does warrant further investigation. It seems to be an ORM model / wrapper for the SQLAlchemy table objects with some Superset-specific niceities.&lt;/p&gt;
+&lt;h3&gt;Searching for a Table&lt;/h3&gt;
+&lt;p&gt;After returning the SQLAlchemy compatible module name and class using the ConnectorRegistry, here's the next line of code:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;This code uses SQLAlchemy syntax to generate a SQL query that returns the "wb_health_population" table. It handles multiple results and focuses on just the ones from SQLAlchemy databases that Superset is aware of. Specifically, it returns a SqlaTable object and assigns to &lt;code&gt;tbl&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;The next code fragment creates the table if it doesn't exist:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="nv"&gt;not&lt;/span&gt; &lt;span class="nv"&gt;tbl&lt;/span&gt;:
+    &lt;span class="nv"&gt;tbl&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nv"&gt;table&lt;/span&gt;&lt;span class="ss"&gt;(&lt;/span&gt;&lt;span class="nv"&gt;table_name&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="nv"&gt;tbl_name&lt;/span&gt;, &lt;span class="nv"&gt;schema&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="nv"&gt;schema&lt;/span&gt;&lt;span class="ss"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;Next up, this code reads in "countries.md", which contains information on the World Health dataset. Then, it attaches this information to the description column for the SqlaTable object:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;tbl.description = utils.readfile(
+    os.path.join(get_examples_folder(), &amp;quot;countries.md&amp;quot;)
+)
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The next three lines of code set values to three more columns within this SqlaTable object:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;tbl.main_dttm_col = &amp;quot;year&amp;quot;
+tbl.database = database
+tbl.filter_select_enabled = True
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;h3&gt;Defining Metrics for World Health Dashboard&lt;/h3&gt;
+&lt;p&gt;The raw metrics that need to be created to power this Superset dashboard are represented as the following strings:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;metrics = [
+    &amp;quot;sum__SP_POP_TOTL&amp;quot;,
+    &amp;quot;sum__SH_DYN_AIDS&amp;quot;,
+    &amp;quot;sum__SH_DYN_AIDS&amp;quot;,
+    &amp;quot;sum__SP_RUR_TOTL_ZS&amp;quot;,
+    &amp;quot;sum__SP_DYN_LE00_IN&amp;quot;,
+    &amp;quot;sum__SP_RUR_TOTL&amp;quot;,
+]
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The next block of code does the following for each metric-string:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;searches all of the &lt;code&gt;tbl&lt;/code&gt; object's &lt;code&gt;metrics&lt;/code&gt; to check if it already exists&lt;/li&gt;
+&lt;li&gt;slices the metric-string to extract first 3 characters (e.g. "sum")&lt;/li&gt;
+&lt;li&gt;uses SQLAlchemy to search for the column that will be aggregated&lt;/li&gt;
+&lt;li&gt;appends the metric to &lt;code&gt;tbl.metrics&lt;/code&gt;, using the &lt;code&gt;SqlMetric&lt;/code&gt; class&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;metric&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;metrics&lt;/span&gt;&lt;span class="p"&gt;:&lt;/span&gt;
+    &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="ow"&gt;not&lt;/span&gt; &lt;span class="n"&gt;any&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;col&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;metric_name&lt;/span&gt; &lt;span class="o"&gt;==&lt;/span&gt; &lt;span class="n"&gt;metric&lt;/span&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="n"&gt;col&lt;/span&gt; &lt;span class="ow"&gt;in&lt;/span&gt; &lt;span class="n"&gt;tbl&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;metrics&lt;/span&gt;&lt;span class="p"&gt;):&lt;/span&gt;
+        &lt;span class="n"&gt;aggr_func&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;metric&lt;/span&gt;&lt;span class="p"&gt;[:&lt;/span&gt;&lt;span class="mi"&gt;3&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;
+        &lt;span class="n"&gt;col&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="nb"&gt;str&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;column&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;metric&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;5&lt;/span&gt;&lt;span class="p"&gt;:])&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;compile&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;db&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;engine&lt;/span&gt;&lt;span class="p"&gt;))&lt;/span&gt;
+        &lt;span class="n"&gt;tbl&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;metrics&lt;/span&gt;&lt;span class="o"&gt;.&lt;/span&gt;&lt;span class="n"&gt;append&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;
+            &lt;span class="n"&gt;SqlMetric&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;metric_name&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;metric&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;expression&lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="n"&gt;f&lt;/span&gt;&lt;span class="s2"&gt;&amp;quot;{aggr_func}({col})&amp;quot;&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;
+        &lt;span class="p"&gt;)&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;The next three lines seem to commit these changes to the database and re-fetch the metadata:&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;db.session.merge(tbl)
+db.session.commit()
+tbl.fetch_metadata()
+&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+
+&lt;p&gt;We're nearly done understanding the World Health dashboard example! But I've run out of time for today. I'll save this for Day 8!&lt;/p&gt;</content><category term="Review"></category></entry><entry><title>Apache Superset from Scratch: Day 6 (Database Class)</title><link href="/apache-superset-from-scratch-day-6-database-class.html" rel="alternate"></link><published>2021-12-29T10:20:00-05:00</published><updated>2021-12-29T10:20:00-05:00</updated><author><name>Srini Kadamati</name></author><id>tag:None,2021-12-29:/apache-superset-from-scratch-day-6-database-class.html</id><summary type="html">&lt;p&gt;I ended Day 5 with the knowledge of the Superset shell and a hunch that it might be a better tool for understanding the different code paths for how an example is loaded.&lt;/p&gt;
 &lt;p&gt;Now I'm going to try running some commands to begin emulating what the app is doing when …&lt;/p&gt;</summary><content type="html">&lt;p&gt;I ended Day 5 with the knowledge of the Superset shell and a hunch that it might be a better tool for understanding the different code paths for how an example is loaded.&lt;/p&gt;
 &lt;p&gt;Now I'm going to try running some commands to begin emulating what the app is doing when loading an example. First things first, let's run the &lt;code&gt;utils.get_example_database()&lt;/code&gt; function call:&lt;/p&gt;
 &lt;div class="highlight"&gt;&lt;pre&gt;&lt;span&gt;&lt;/span&gt;&lt;code&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="kn"&gt;from&lt;/span&gt; &lt;span class="nn"&gt;superset.utils&lt;/span&gt; &lt;span class="kn"&gt;import&lt;/span&gt; &lt;span class="n"&gt;core&lt;/span&gt; &lt;span class="k"&gt;as&lt;/span&gt; &lt;span class="n"&gt;utils&lt;/span&gt;
