@@ -1,6 +1,8 @@
 AUTHOR = 'Srini Kadamati'
 SITENAME = 'Srini Kadamati'
+CATEGORY_SAVE_AS = ''
 
+ARTICLE_PATHS = ['blog']
 PATH = 'content'
 
 TIMEZONE = 'America/New_York'
@@ -64,4 +66,4 @@ CACHE_CONTENT = False
 AUTORELOAD_IGNORE_CACHE = True
 
 # Custom stuff by Srini
-THEME = "newbird"
+THEME = "../newbird-pelican-theme"
