@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  
+<!-- Extra Header for IPython Notebooks
+================================================== -->
+  
+
+  <style>
+    div.input_prompt { display: none; }
+    div.prompt { display: none; }
+  </style>
+
+
+	<!-- Basic Page Needs
+  ================================================== -->
+  <meta charset="utf-8">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+
+  <title>Apache Superset from Scratch (2021)</title>
+
+  <meta name="description" content="">
+  <meta name="author" content="Srini Kadamati">
+  <meta name="copyright" content="&copy; 2026 Srini Kadamati">
+
+  <!-- Mobile Specific Metas
+  ================================================== -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+  <!-- CSS
+  ================================================== -->
+  <meta name="theme-color" content="#f8f8f6">
+  <link rel="stylesheet" href="theme/site.css">
+
+  
+
+  
+  
+	<!-- Facebook Open Graph
+  ================================================== -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Apache Superset from Scratch (2021)">
+  <meta property="og:url" content="https://viz.gl/apache-superset-from-scratch-2021.html">
+  <meta property="og:description" content="">
+  <meta property="og:site_name" content="Srini Kadamati">
+  <meta property="og:image" content="https://viz.gl/images/logo.jpg">
+
+  <!-- Twitter Cards
+  ================================================== -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@">
+  <meta name="twitter:creator" content="@">
+  <meta name="twitter:domain" content="viz.gl">
+  <meta name="twitter:image" content="https://viz.gl/images/logo.jpg">
+  <meta name="twitter:title" content="Apache Superset from Scratch (2021)">
+  <meta name="twitter:description" content="">
+
+  
+
+  
+    
+  
+
+	<!-- Favicons
+	================================================== -->
+	<link rel="shortcut icon" href="/images/favicon.ico">
+	<link rel="apple-touch-icon" href="/images/logo.jpg">
+
+
+</head>
+<body class="">
+	<!-- Primary Page Layout
+	================================================== -->
+	<div class="container">
+    <header class="site-header">
+  <a class="wordmark" href="/">Srini Kadamati</a>
+  <nav aria-label="Main navigation">
+    <a href="/projects/">Projects</a><a href="https://interfacingdata.substack.com/" target="_blank" rel="noopener noreferrer">Newsletter <span aria-hidden="true">↗</span><span class="sr-only"> (external link)</span></a><a href="/about/">About</a>
+  </nav>
+</header>
+		<main id="content">
+			
+
+  <!-- Article Headers
+  ================================================================== -->
+  <h1 class="article-title">Apache Superset from Scratch (2021)</h1>
+  <p class="article-meta"><time datetime="2021-12-23T10:20:00-05:00">December 23, 2021</time>
+    
+  </p>
+  <hr class="article-divider">
+
+  <!-- Article Content
+  ================================================================== -->
+  <div class="article-body"><ul>
+<li><a href="#day-1">Day 1 (Python Setup)</a></li>
+<li><a href="#day-2">Day 2 (Metadata Database)</a></li>
+<li><a href="#day-3">Day 3 (Frontend Setup)</a></li>
+<li><a href="#day-4">Day 4 (Superset &amp; Flask Entrypoint)</a></li>
+<li><a href="#day-5">Day 5 (More Flask App)</a></li>
+<li><a href="#day-6">Day 6 (Database Class)</a></li>
+<li><a href="#day-7">Day 7 (Metadata for Examples)</a></li>
+</ul>
+<h2 id="day-1">Day 1 (Python Setup)</h2>
+
+<p>I'm on a quest, to understand and map out as much of the <a href="https://superset.apache.org/">Apache Superset</a> code base as I can. In my <a href="https://linkedin.com/in/srinivasakadamati">day job</a>, I have the opportunity to <em>use</em> Superset on a daily basis but I'm not intimately familiar with the code paths themselves. This series will revolve around the process on a M1 Macbook Air, but should generalize to most *nix systems.</p>
+<p>My goal is to make noticeable progress on a daily basis. With the preamble out of the way, let's start!</p>
+<h3>Contributing.md</h3>
+<p>The Superset codebase is large; where does one even begin? For new code bases, I generally like alternating between:</p>
+<ul>
+<li><em>breadth</em>: starting with an overview of the development / contributor's guide</li>
+<li><em>depth</em>: recursively going through each component &amp; sub-component</li>
+</ul>
+<p>For breadth, I'll start with the <a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development">Setup Local Environment for Development</a> section from CONTRIBUTING.MD.</p>
+<h3>Python 3.8</h3>
+<p>Python 3.7.x or 3.8.x are recommended for running the Superset backend. I'm on a Mac, and prefer to leave the default <code>python</code> that ships with the operating system to 2.7.x. Instead, I'll use <a href="https://brew.sh/">Homebrew</a> to install Python 3.8:</p>
+<pre class="codehilite"><code>brew install python@3.8
+</code></pre>
+
+<p>Now, both the <code>python3</code> and <code>pip3</code> commands work as expected (independent of the <code>python</code> and <code>pip</code> commands)!</p>
+<ul>
+<li><code>python3 --version</code> returns<ul>
+<li><code>Python 3.8.12</code></li>
+</ul>
+</li>
+<li><code>pip3 --version</code> returns<ul>
+<li><code>pip 21.2.4 from /opt/homebrew/lib/python3.8/site-packages/pip (python 3.8)</code></li>
+</ul>
+</li>
+</ul>
+<h3>Virtualenv</h3>
+<p>Now time to create a Python virtual environment. Virtual environment is really a sandbox for your Python libraries that lives within a specific folder / project. This workflow gives you a few benefits:</p>
+<ul>
+<li>Virtual environment lives completely independent of the global Python sandbox</li>
+<li>It's super quick and easy to delete all of the project specific Python libraries and re-install, as an escape hatch</li>
+<li>Less time wasted (not zero sadly) dealing with version / dependency conflicts</li>
+</ul>
+<p>Are there any downsides?</p>
+<ul>
+<li>The main one is increased storage requirements, because every Python project on your computer has its own copies of similar libraries</li>
+</ul>
+<p>First, let me install <code>virtualenv</code>:</p>
+<pre class="codehilite"><code>pip3 install virtualenv
+</code></pre>
+
+<p>Next, let's give our virtual environment a name. The <code>virtualenv</code> creates a folder within your project folder and stuffs all of the Python libraries you install there. So we're really trying to decide on the <em>name</em> of this folder.</p>
+<p>The CONTRIBUTING.MD file in the Superset repo suggests naming it <code>venv</code>:</p>
+<pre class="codehilite"><code>python3 -m venv venv
+</code></pre>
+
+<ul>
+<li>The first <code>venv</code> is short-hand for <code>virtualenv</code></li>
+<li>The second <code>venv</code> refers to the name of the folder we're creating (<code>../superset/venv/</code>)</li>
+</ul>
+<p>Why should we name it <code>venv/</code>? One hint is in the <code>.gitignore</code> file, which <a href="https://git-scm.com/docs/gitignore">specifies files &amp; folder paths to ignore in version control</a>. This means that each user can have their own local state and those details won't get checked into version control. </p>
+<p>The <code>.gitignore</code> file itself <em>is</em> version controlled though. So this file provides a "universal" agreemenet between all of the contributors to Superset that these files should not be checked into version control. Let's search for any string values containing "env" in the <code>.gitignore</code>:</p>
+<pre class="codehilite"><code>cat .gitignore | grep 'env'
+</code></pre>
+
+<p>This returns:</p>
+<pre class="codehilite"><code>.env
+.envrc
+env
+venv*
+env_py3
+envpy3
+env36
+venv
+</code></pre>
+
+<p>While some open source projects use the <code>.venv/</code> convention for virtualenv, the Superset one uses <code>venv</code> it seems. So this means:</p>
+<ul>
+<li>we can party in our local <code>venv/</code> and none of those changes will make it into any code PR's we may want to make</li>
+<li>if we want to use <code>.venv/</code> instead, the git version control system will detect a change</li>
+</ul>
+<p>Let's stick to the community convention, and run the suggested command:</p>
+<pre class="codehilite"><code>python3 -m venv venv
+</code></pre>
+
+<p>If we run <code>ls</code> while within the <code>superset/</code> folder, we'll see <code>venv</code> listed as a folder. Success!</p>
+<h3>Python Dependencies</h3>
+<p>Usually, the Python requirements are specified in a <code>requirements.txt</code> file. In the case of Superset, we're blessed with a folder of <code>.in</code> and <code>.txt</code> files. There's a lot we could explore and unpack here, but I'm going to focus on getting everything setup first.</p>
+<p>If we look to CONTRIBUTING.MD, we see:</p>
+<pre class="codehilite"><code>pip install -r requirements/testing.txt
+</code></pre>
+
+<p>If we open that file, we see something that resembles a standard <code>requirements.txt</code> file, but with this header:</p>
+<pre class="codehilite"><code># This file is autogenerated by pip-compile-multi
+</code></pre>
+
+<p>I've made a mental note to investigate &amp; explore <code>pip-compile-multi</code> later, a library for compiling multiple requirement files. For now, let's run the following command to install the dependencies:</p>
+<pre class="codehilite"><code>pip3 install -r requirements/testing.txt
+</code></pre>
+
+<p><strong>Error 1: MySQL</strong></p>
+<p>I ran into this issue with red scary error text while on my M1 Macbook computer:</p>
+<pre class="codehilite"><code>Collecting mysqlclient==2.1.0
+  Using cached mysqlclient-2.1.0.tar.gz (87 kB)
+    ERROR: Command errored out with exit status 1:
+     command: /opt/homebrew/opt/python@3.8/bin/python3.8 -c 'import io, os, sys, setuptools, tokenize; sys.argv[0] = '&quot;'&quot;'/private/var/folders/6d/f0fzvlyn6sd58q5rmx6s6df00000gn/T/pip-install-6c548wua/mysqlclient_a8c054d3233d4d00acb42d6a6bf2a562/setup.py'&quot;'&quot;'; __file__='&quot;'&quot;'/private/var/folders/6d/f0fzvlyn6sd58q5rmx6s6df00000gn/T/pip-install-6c548wua/mysqlclient_a8c054d3233d4d00acb42d6a6bf2a562/setup.py'&quot;'&quot;';f = getattr(tokenize, '&quot;'&quot;'open'&quot;'&quot;', open)(__file__) if os.path.exists(__file__) else io.StringIO('&quot;'&quot;'from setuptools import setup; setup()'&quot;'&quot;');code = f.read().replace('&quot;'&quot;'\r\n'&quot;'&quot;', '&quot;'&quot;'\n'&quot;'&quot;');f.close();exec(compile(code, __file__, '&quot;'&quot;'exec'&quot;'&quot;'))' egg_info --egg-base /private/var/folders/6d/f0fzvlyn6sd58q5rmx6s6df00000gn/T/pip-pip-egg-info-0735tk4h
+
+     WARNING: Discarding https://files.pythonhosted.org/packages/de/79/d02be3cb942afda6c99ca207858847572e38146eb73a7c4bfe3bdf154626/mysqlclient-2.1.0.tar.gz#sha256=973235686f1b720536d417bf0a0d39b4ab3d5086b2b6ad5e6752393428c02b12 (from https://pypi.org/simple/mysqlclient/) (requires-python:&gt;=3.5). Command errored out with exit status 1: python setup.py egg_info Check the logs for full command output.
+    ERROR: Could not find a version that satisfies the requirement mysqlclient==2.1.0 (from versions: 1.3.0, 1.3.1, 1.3.2, 1.3.3, 1.3.4, 1.3.5, 1.3.6, 1.3.7, 1.3.8, 1.3.9, 1.3.10, 1.3.11rc1, 1.3.11, 1.3.12, 1.3.13, 1.3.14, 1.4.0rc1, 1.4.0rc2, 1.4.0rc3, 1.4.0, 1.4.1, 1.4.2, 1.4.2.post1, 1.4.3, 1.4.4, 1.4.5, 1.4.6, 2.0.0, 2.0.1, 2.0.2, 2.0.3, 2.1.0rc1, 2.1.0)
+    ERROR: No matching distribution found for mysqlclient==2.1.0
+</code></pre>
+
+<p>Some <a href="https://stackoverflow.com/questions/66669728/trouble-installing-mysql-client-on-mac">StackOverflow sleuthing suggested</a> that I needed to install MySQL server via homebrew so the installation process for the Python client library would work. So this may not be an M1 related issue after all:</p>
+<pre class="codehilite"><code>brew install mysql
+</code></pre>
+
+<p><strong>Error 2: Postgres</strong></p>
+<p>While <code>mysql-client</code> succeeded, pip now got stuck on postgres:</p>
+<pre class="codehilite"><code>Error: pg_config executable not found.
+
+pg_config is required to build psycopg2 from source.  Please add the directory
+containing pg_config to the $PATH or specify the full executable path with the
+option:
+
+    python setup.py build_ext --pg-config /path/to/pg_config build ...
+
+or with the pg_config option in 'setup.cfg'.
+
+If you prefer to avoid building psycopg2 from source, please install the PyPI
+'psycopg2-binary' package instead.
+</code></pre>
+
+<p>Let's check out <a href="https://stackoverflow.com/questions/20170895/mac-virtualenv-pip-postgresql-error-pg-config-executable-not-found">Stack Overflow again</a>. I like using the <a href="https://postgresapp.com/">Postgres Mac app</a>, which contains a <code>pg_config</code> executable. So I'm going to </p>
+<p>I'm going to move forward with finding the path to the <code>pg_config</code> file and add it to my PATH. I'll first crack open the Postgres.app folder:</p>
+<p><img alt="Opening Postgres.app Folder" src="/images/app_show_package_contents.png" /></p>
+<p>After jumping through folders, I found the <code>pg_config</code> executable. As suggested in StackOverflow, I'm going to add that executable's folder to my PATH:</p>
+<pre class="codehilite"><code>export PATH=$PATH:/Applications/Postgres.app/Contents/Versions/14/bin
+</code></pre>
+
+<p>Now when I <code>pip3 install -r requirements/testing.txt</code> again, everything works beautifully!</p>
+<h3>Editable Superset</h3>
+<p>Now, we're ready to install Superset in "editable" mode. Editable mode lets us modify and test code changes in Superset quickly, which is ideal when developing features or fixing bugs.</p>
+<pre class="codehilite"><code>pip3 install -e .
+</code></pre>
+
+<p>To test the installation, run the <code>superset</code> command and the Superset CLI should appear:</p>
+<p><img alt="Superset CLI" src="/images/superset_cli2.png" /></p>
+<h3>Next Up</h3>
+<p>That's it for Day 1. In Day 2, I'll play with setting up the metadata database, creating roles &amp; permissions, loading example data, and starting the backend server. </p>
+<p>If you want to follow along, use the <a href="/feeds/all.atom.xml">RSS feed</a>. Stay tuned! 📺</p>
+<h2 id="day-2">Day 2 (Metadata Database)</h2>
+
+<p>In Day 1, I setup the backend Python depedencies. Now, I'm going to start the metadata database. The next step, as laid out in <a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#setup-local-environment-for-development">CONTRIBUTING.MD</a>, is to run:</p>
+<pre class="codehilite"><code>superset db upgrade
+</code></pre>
+
+<h3>Superset CLI</h3>
+<p>Before we do that, I want to get more familiar with the Superset CLI. If you recall from the last post, running <code>superset</code> in the command line exposes a number of interesting commands we could run:</p>
+<p><img alt="Superset CLI" src="/images/superset_cli2.png" /></p>
+<p>Some interesting commands that stick out:</p>
+<ul>
+<li>db: Perform database migrations.</li>
+<li>export-dashboards: Export dashboards to JSON</li>
+<li>fab: FAB flask group commands</li>
+<li>init: Inits the Superset application</li>
+</ul>
+<p>Where does the code for these CLI commands live? After some searches in the Superset codebase, it's clear they live in the <code>superset/cli.py</code> file. The CLI commands listed above map to function definitions. For example, here's the function definition for <code>superset init</code>:</p>
+<pre class="codehilite"><code>@superset.command()
+@with_appcontext
+def init() -&gt; None:
+    &quot;&quot;&quot;Inits the Superset application&quot;&quot;&quot;
+    appbuilder.add_permissions(update_perms=True)
+    security_manager.sync_role_definitions()
+</code></pre>
+
+<p>It looks like there's no function declaration that maps to the <code>superset db</code> CLI command, but instead the <code>db</code> namespace is imported from another file:</p>
+<pre class="codehilite"><code>from superset.extensions import celery_app, db
+</code></pre>
+
+<p>If we jump to <code>superset/extensions.py</code>, we then see:</p>
+<pre class="codehilite"><code>db = SQLA()
+</code></pre>
+
+<p>SQLA() sounds like SQLAlchemy, where is it defined or imported?</p>
+<pre class="codehilite"><code>from flask_appbuilder import AppBuilder, SQLA
+</code></pre>
+
+<p>Neat! I know that Superset is built on top of Flask App Builder (or FAB for short), so this must be one of the important touchpoints. We'll avoid continuing down the rabbit hole for now, and dive deeper into FAB another day.</p>
+<p>Let's ask the CLI to list out all of the available commands within <code>superset db</code>:</p>
+<p><img alt="Superset CLI db" src="/images/superset_cli_db.png" /></p>
+<p>Neat! Let's run <code>superset db upgrade</code> now. As expected, a bunch of historical database migrations were run and applied.</p>
+<p><img alt="Superset db upgrade" src="/images/superset_db_upgrade.png" /></p>
+<h3>Where does the metadata database live?</h3>
+<p>Apparently, <em>some</em> database somewhere was upgraded. But where does that database actually live? After some exploring online, it seems that by default this database resides as a single SQLite database file over in my home directory:</p>
+<pre class="codehilite"><code>cat ~/.superset/superset.db
+</code></pre>
+
+<p>Running this command returns a long list of all the schema definitions. This is cool! I look forward to understanding the schemas later.</p>
+<h3>Creating default roles</h3>
+<p>Next up, we need to create an admin user in our metadata database (fancy word for our little SQLite database!):</p>
+<pre class="codehilite"><code>superset fab create-admin
+</code></pre>
+
+<p>Before we run the full command, what CLI commands are available within the <code>superset fab</code> namespace?</p>
+<p><img alt="Superset CLI fab" src="/images/superset_cli_fab.png" /></p>
+<p>The commands here let us create admin users, create regular users, create database objects, reset a user's password, and more. Let's create an admin user by running <code>superset fab create-admin</code>. To keep this simple during exploration, I just answered <strong>admin</strong> for every line in the wizard:</p>
+<p><img alt="Superset fab create-admin" src="/images/fab_create_admin.png" /></p>
+<p>We now have an admin username (<strong>admin</strong>) and password (<strong>admin</strong>) combination for logging in to Superset, when the time is right. Next, let's create the rest of the roles and permissions:</p>
+<pre class="codehilite"><code>superset init
+</code></pre>
+
+<p>It's interesting that this command isn't part of the <code>superset fab</code> command list.</p>
+<h3>Example Data</h3>
+<p>Let's load up the example datasets and dashboards, many of which were actually created by yours truly!</p>
+<pre class="codehilite"><code>superset load-examples
+</code></pre>
+
+<p>What all is loaded? How does this actually work? For fun, let's dive into the functions &amp; relevant codepaths. Let's start with the function definition for <code>superset load-examples</code>. To follow Pythonic syntax, we need to instead look for <code>load_examples()</code> in <code>superset/cli.py</code>. Here's the function declaration:</p>
+<pre class="codehilite"><code class="language-python">@with_appcontext
+@superset.command()
+@click.option(&quot;--load-test-data&quot;, &quot;-t&quot;, is_flag=True, help=&quot;Load additional test data&quot;)
+@click.option(&quot;--load-big-data&quot;, &quot;-b&quot;, is_flag=True, help=&quot;Load additional big data&quot;)
+@click.option(
+    &quot;--only-metadata&quot;, &quot;-m&quot;, is_flag=True, help=&quot;Only load metadata, skip actual data&quot;,
+)
+@click.option(
+    &quot;--force&quot;, &quot;-f&quot;, is_flag=True, help=&quot;Force load data even if table already exists&quot;,
+)
+def load_examples(
+    load_test_data: bool,
+    load_big_data: bool,
+    only_metadata: bool = False,
+    force: bool = False,
+) -&gt; None:
+    &quot;&quot;&quot;Loads a set of Slices and Dashboards and a supporting dataset&quot;&quot;&quot;
+    load_examples_run(load_test_data, load_big_data, only_metadata, force)
+</code></pre>
+
+<p>While most of the code focuses on the possible CLI options &amp; function parameters, the actual function definition is a single line:</p>
+<pre class="codehilite"><code>load_examples_run(load_test_data, load_big_data, only_metadata, force)
+</code></pre>
+
+<p>If we jump to that function declaration, it's much much longer. This must be where the meat of the logic is for loading examples. Here's a screenshot of just the first half!</p>
+<p><img alt="Load Examples Run" src="/images/load_examples_run.png" /></p>
+<p>This line looks interesting:</p>
+<pre class="codehilite"><code>from superset import examples
+</code></pre>
+
+<p>If I poke through the file structure for Superset, I find a folder dedicated to examples (<code>superset/examples</code>). The <code>__init__.py</code> file for this folder defines each function mapping:</p>
+<p><img alt="Examples Directory" src="/images/examples_directory.png" /></p>
+<p>Cool! What should I look at next?</p>
+<pre class="codehilite"><code>examples.load_css_templates()
+</code></pre>
+
+<p>Superset ships with two default CSS templates for dashboards, so this code is likely how that data is loaded. Let's crack open the <code>def load_css_tesmplates()</code> function, which lives in <code>superset/examples/load_css_templates.py</code>.</p>
+<p><img alt="Load CSS Templates" src="/images/load_css_templates.png" /></p>
+<p>Each CSS template is loaded one after another. Let's step through the key parts of the code to better understand it.</p>
+<pre class="codehilite"><code>obj = db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre>
+
+<p>Here we see the <code>db</code> object again, from earlier. Unsurprisingly, there's a matching import statement for it:</p>
+<pre class="codehilite"><code>from superset import db
+from superset.models.core import CssTemplate
+</code></pre>
+
+<p>The CssTemplate data model itself looks very simple, as defined in <code>superset/models/core.py</code>:</p>
+<pre class="codehilite"><code>class CssTemplate(Model, AuditMixinNullable):
+
+    &quot;&quot;&quot;CSS templates for dashboards&quot;&quot;&quot;
+
+    __tablename__ = &quot;css_templates&quot;
+    id = Column(Integer, primary_key=True)
+    template_name = Column(String(250))
+    css = Column(Text, default=&quot;&quot;)
+</code></pre>
+
+<p>As a mental note to myself, this table is named <strong>css_templates</strong> in the metadata database.</p>
+<p>The rest of the code <em>smells</em> a lot like SQLAlchemy syntax:</p>
+<pre class="codehilite"><code>db.session.query(CssTemplate).filter_by(template_name=&quot;Flat&quot;).first()
+</code></pre>
+
+<p>While I'm not too familiar with the Superset data model yet, this code likely:</p>
+<ul>
+<li>Attaches to a SQLAlchemy session / transaction</li>
+<li>Queries the metadata database, searching for a matching CssTemplate object with the name <strong>Flat</strong></li>
+<li>And the <code>first()</code> at the end is probably just for good measure, in case there are duplicate results</li>
+</ul>
+<p>The goal likely here is to search for an existing entry in the metadata database for the <strong>Flat</strong> CSS template. If an existing entry in the metadata database wasn't found, a new CssTemplate object is instantiated for the purpose of inserting later:</p>
+<pre class="codehilite"><code>if not obj:
+    obj = CssTemplate(template_name=&quot;Flat&quot;)
+</code></pre>
+
+<p>Then, the CSS itself is defined as a hard-coded string (shortened extensively below):</p>
+<pre class="codehilite"><code>css = textwrap.dedent(
+    &quot;&quot;&quot;\
+    .navbar {
+        transition: opacity 0.5s ease;
+        opacity: 0.05;
+    }
+    ....
+    &quot;&quot;&quot;
+    )
+</code></pre>
+
+<p>Finally, the string is set to the instianted CssTemplate object's <code>css</code> column and inserted into the metadata database:</p>
+<pre class="codehilite"><code>obj.css = css
+    db.session.merge(obj)
+    db.session.commit()
+</code></pre>
+
+<p>This whole process is then repeated to add the <strong>Courier Black</strong> CSS template.</p>
+<p>Phew! This was just the CSS templates. No example datasets or example dashboards yet. Because I'm running out of time today, I'll circle back to the code paths for those a later day.</p>
+<h3>Starting Flask Server</h3>
+<p>The last step now is to fire up the Flask server and see how Superset looks in the web browser.</p>
+<pre class="codehilite"><code>FLASK_ENV=development superset run -p 8088 --with-threads --reload --debugger
+</code></pre>
+
+<p>By default, Flask will run on port 8088 but we can change the port number by changing the value we put in the invocation.</p>
+<p><img alt="Flask Server" src="/images/flask_server.png" /></p>
+<p>We're shown a somewhat incomplete and outdated login screen. This is interesting.</p>
+<p><img alt="Superset Login" src="/images/superset_login.png" /></p>
+<p>My guess here is that somewhere, the frontend assets need to be built. This seems to align with the comments listed before the flask server initialization instructions:</p>
+<pre class="codehilite"><code># Start the Flask dev web server from inside your virtualenv.
+# Note that your page may not have CSS at this point.
+# See instructions below how to build the front-end assets.
+</code></pre>
+
+<p>Let's save frontend for Day 3!</p>
+<h2 id="day-3">Day 3 (Frontend Setup)</h2>
+
+<p>In Day 3, I'm going to dive into setting up the frontend. In general, I'm quite new to the frontend ecosystem, so expect lots of tangents to fill in knowledge gaps along the way!</p>
+<p>We'll start with the <a href="https://github.com/apache/superset/blob/master/CONTRIBUTING.md#frontend">Frontend section from CONTRIBUTING.MD</a>.</p>
+<p>The first paragraph has some helpful historical context:</p>
+<blockquote>
+<p>Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in order to properly display the web UI. The superset-frontend directory contains all NPM-managed frontend assets. Note that for some legacy pages there are additional frontend assets bundled with Flask-Appbuilder (e.g. jQuery and bootstrap). These are not managed by NPM and may be phased out in the future.</p>
+</blockquote>
+<h3>Node</h3>
+<p>Thankfully, I've used Node a little bit before. Let me check what version I have installed on this computer. Usually the <code>--version</code> flag will do the trick!</p>
+<pre class="codehilite"><code>node --version
+&gt; v17.3.0
+</code></pre>
+
+<p>The guide recommends Node 16, but Node 17.x should be fine. Let's check the <code>npm</code> version next. Npm is the Node package manager:</p>
+<pre class="codehilite"><code>npm --version
+&gt; 8.3.0
+</code></pre>
+
+<p>The guide recommends using <code>nvm</code> to manage different Node versions. This is helpful advice, but I don't want to prematurely optimize and add more abstraction / complexity than needed. So let's soldier on for now.</p>
+<h3>Package.json</h3>
+<p>The <code>package.json</code> is the Node equivalent to Python's <code>requirements.txt</code> file. For Superset, the <code>package.json</code> file lives within the <code>superset/superset-frontend/</code> folder. Let's switch into that folder.</p>
+<p>What's actually in this file? A. LOT. Let's break some of this down.</p>
+<pre class="codehilite"><code>{
+  &quot;name&quot;: &quot;superset&quot;,
+  &quot;version&quot;: &quot;0.0.0dev&quot;,
+  &quot;description&quot;: &quot;Superset is a data exploration platform designed to be visual, intuitive, and interactive.&quot;,
+  &quot;keywords&quot;: [
+    &quot;big&quot;,
+    &quot;data&quot;,
+    &quot;exploratory&quot;,
+    &quot;analysis&quot;,
+    &quot;react&quot;,
+    &quot;d3&quot;,
+    &quot;airbnb&quot;,
+    &quot;nerds&quot;,
+    &quot;database&quot;,
+    &quot;flask&quot;
+  ],
+</code></pre>
+
+<p>This line is interesting: <code>"version": "0.0.0dev".</code> I wonder if this is where the Superset version value that's shown in the Superset UI lives? </p>
+<p><em>As a quick detour, I wonder what this value in the <code>package.json</code> file <a href="https://github.com/apache/superset/blob/1.4/superset-frontend/package.json">in the Superset v1.4 release</a> looks like?</em></p>
+<p><img alt="Superset CLI" src="/images/superset_14_package.png" /></p>
+<p>My hunch was right! 1.4 is harcoded as a string in the <code>package.json</code> file. Cool!</p>
+<p>Then we can run <code>npm install</code>, which should use the <code>superset-frontend/package.json</code> file. But the documentation suggests <code>npm ci</code>. <a href="https://stackoverflow.com/a/53325242">Searching online suggests</a> using <code>npm ci</code> if there's an existing <code>package-lock.json</code> file.</p>
+<p>Because the project has an existing <code>package-lock.json</code> file, let's use <code>npm ci</code>!</p>
+<p><img alt="npm ci" src="/images/npm_ci_1.png" /></p>
+<p>In the first half of the CLI output, I see that npm installed 5009 packages and displayed a bunch of deprecation warnings.</p>
+<p><img alt="npm ci" src="/images/npm_ci_2.png" /></p>
+<p>In the second half of the CLI output, I see that there are 111 vulnerabilities. I'm noting both of these down (through this post!) to investigate later.</p>
+<h3>Build Frontend Assets</h3>
+<p>Next, as the guide suggests, I will run <code>npm run build</code>. After a few minutes, I was presented with many warnings but some indication that the build succeeded?</p>
+<p><img alt="npm run build" src="/images/npm_run_build.png" /></p>
+<p>Next, we can start the dev server at port <code>9000</code> by running:</p>
+<pre class="codehilite"><code>npm run dev-server
+</code></pre>
+
+<p>Here's what the CLI output looks like with both the frontend and backend runinng simultaneously:</p>
+<p><img alt="backend and frontend" src="/images/backend_frontend.png" /></p>
+<p>Exciting! Now if I head to <code>localhost:8088</code>, I should see Superset:</p>
+<p><img alt="Superset UI" src="/images/superset_ui.png" /></p>
+<p>Hmm, that's curious. I'm logged in as the admin and I'm still seeing issues.</p>
+<p>Unfortunately I'm out of time for today, so I'll have to debug this on Day 4!</p>
+<h2 id="day-4">Day 4 (Superset & Flask Entrypoint)</h2>
+
+<p>I ended Day 3 by setting up the backend and frontend servers, but running into the following error.</p>
+<p><img alt="Superset UI" src="/images/superset_ui.png" /></p>
+<p>For good measure, I'm going to shut down and restart the backend server. Success!</p>
+<p><img alt="Superset UI Fixed" src="/images/superset_ui_fixed.png" /></p>
+<p>No thumbnails though ☹️. Well I do know from previous experience that thumbnails require setting up a separate celery server. This will need separate investigation.</p>
+<p>Now that I have Superset up and running, what should I look into next? I really want to dive deeper into how the example datasets, charts, and dashboards are loaded. This will force me to better understand the internal Superset data model.</p>
+<h3>How the Superset Examples Work</h3>
+<p>The world health dashboard looks interesting and like one of the more complex ones. I'll start by poking deeper into this one:</p>
+<p><img alt="World Health Dashboards" src="/images/world_health_dashboard.png" /></p>
+<p>Here's the relevant function call from <code>superset/cli.py</code>:</p>
+<pre class="codehilite"><code>print(&quot;Loading [World Bank's Health Nutrition and Population Stats]&quot;)
+examples.load_world_bank_health_n_pop(only_metadata, force)
+</code></pre>
+
+<p>Sooo, let's get into it. Where does the second line of code actually point to? As I mentioned in <a href="/apache-superset-from-scratch-2021.html#day-2">Day 2</a>, the <code>superset/superset/examples/__init__.py</code> file contains mappings like this one:</p>
+<pre class="codehilite"><code>from .world_bank import load_world_bank_health_n_pop
+</code></pre>
+
+<p>This means that the <code>load_world_bank_health_n_pop()</code> function lives in <code>examples/world_bank.py</code>! Here's a preview of the first 8 lines:</p>
+<pre class="codehilite"><code>def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+    only_metadata: bool = False, force: bool = False, sample: bool = False,
+) -&gt; None:
+    &quot;&quot;&quot;Loads the world bank health dataset, slices and a dashboard&quot;&quot;&quot;
+    tbl_name = &quot;wb_health_population&quot;
+    database = utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+    table_exists = database.has_table_by_name(tbl_name)
+</code></pre>
+
+<p>The first line almost surely refers to the table name in the examples database.</p>
+<pre class="codehilite"><code>tbl_name = &quot;wb_health_population&quot;
+</code></pre>
+
+<p>How can I confirm this? The fastest way is to probably crack open SQL Lab and inspect the table name for the examples database.</p>
+<p><img alt="World Health Table" src="/images/wb_sqllab.png" /></p>
+<p>Confirmed. Let's check out the next line:</p>
+<pre class="codehilite"><code>database = utils.get_example_database()
+</code></pre>
+
+<p>Ah yes, the art of the <code>utils</code>! The perfect hiding place for some arbitrary functions. Where does this point to?</p>
+<pre class="codehilite"><code>from superset.utils import core as utils
+</code></pre>
+
+<p>So there should be a <code>utils/core.py</code> file. Oh boy, this file is 1835 lines of code. But it does have the <code>get_example_database()</code> function that's called. The function definition is pretty short so I'm including it here in it's entireity:</p>
+<pre class="codehilite"><code>def get_example_database() -&gt; &quot;Database&quot;:
+    db_uri = (
+        current_app.config.get(&quot;SQLALCHEMY_EXAMPLES_URI&quot;)
+        or current_app.config[&quot;SQLALCHEMY_DATABASE_URI&quot;]
+    )
+    return get_or_create_db(&quot;examples&quot;, db_uri)
+</code></pre>
+
+<p>Now we're getting somewhere! This function tells the app which database is designated as the <strong>examples</strong> one. First things first, where is <code>current_app</code> defined?</p>
+<pre class="codehilite"><code>from flask import current_app, flash, g, Markup, render_template, request
+</code></pre>
+
+<p>The <code>current_app</code> object is imported from <a href="https://flask.palletsprojects.com/en/2.0.x/">flask</a>, which is a Python microframework for creating web applications. </p>
+<blockquote>
+<p>Note to self: I need to dig into the relationship between Flask and Flask App-builder later on.</p>
+</blockquote>
+<p>After a quick Google search, I found the page in the flask documentation on <a href="https://flask.palletsprojects.com/en/2.0.x/appcontext/">the current application context</a>. Perusing this page, this reminds me a lot of of the <code>request</code> object from my Ruby on Rails days. This was a form of passing application state around.</p>
+<p>This is essentially a way to reference values specific to the current instance running of the running Superset application.</p>
+<blockquote>
+<p>The application context keeps track of the application-level data during a request, CLI command, or other activity. Rather than passing the application around to each function, the current_app and g proxies are accessed instead.</p>
+<p>This is similar to The Request Context, which keeps track of request-level data during a request. A corresponding application context is pushed when a request context is pushed.</p>
+</blockquote>
+<p>Well what do you know! There's a call out to the <a href="https://flask.palletsprojects.com/en/2.0.x/reqcontext/">flask version of the request object</a> that's similar to the one from Rails! My hunch was spot on.</p>
+<h3>App Factory Pattern</h3>
+<p>To take a step back, what actually happens when I run <code>superset run</code> from the CLI?</p>
+<p>The <a href="https://flask.palletsprojects.com/en/2.0.x/tutorial/factory/">flask documentation</a> suggests that the <code>def create_app()</code> function definition is likely to be the <strong>entrypoint</strong> to the flask application at the core of Superset that is called when <code>flask run</code> or an equivalent is run.</p>
+<p>A quick search in my text editor found only one non-test-related definition for <code>create_app()</code>, found in <code>superset/superset/app.py</code>:</p>
+<p><img alt="App Py" src="/images/app_py.png" /></p>
+<p>These lines especially look relevant to our investigation of how:</p>
+<ul>
+<li>the World Health dashboard is loaded</li>
+<li>how <code>current_app.config.get("SQLALCHEMY_EXAMPLES_URI")</code> resolves</li>
+<li>getting closer to <code>current_app</code></li>
+</ul>
+<pre class="codehilite"><code>try:
+    # Allow user to override our config completely
+    config_module = os.environ.get(&quot;SUPERSET_CONFIG&quot;, &quot;superset.config&quot;)
+    app.config.from_object(config_module)
+</code></pre>
+
+<h3>Next Steps</h3>
+<p>I feel closer to understanding all of the links here, but sadly I'm out of time today. Here are the open questions I still have:</p>
+<ul>
+<li>What's the link between <code>create_app()</code> and <code>current_app</code>?</li>
+<li>Where is the value for <code>SQLALCHEMY_EXAMPLES_URI</code> actually set?</li>
+<li>How does this line of code actually work: <code>os.environ.get("SUPERSET_CONFIG", "superset.config")</code>?</li>
+</ul>
+<h2 id="day-5">Day 5 (More Flask App)</h2>
+
+<p>I ended Day 4 trying to understand how the World Health dashboard was imported. I walked away with a lot of open questions around how the flask app factory pattern worked. After sleeping on it and approaching with fresh eyes, I'm excited to hopefully make more progress today.</p>
+<h3>Flask App Context</h3>
+<p>I spent the morning reading the following articles from the excellent Flask documentation:</p>
+<ul>
+<li><a href="https://flask.palletsprojects.com/en/2.0.x/appcontext/">the Application Context</a></li>
+<li><a href="https://flask.palletsprojects.com/en/2.0.x/api/#flask.Config">class flask.Config</a></li>
+<li><a href="https://flask.palletsprojects.com/en/2.0.x/patterns/appfactories/">Application Factories</a></li>
+<li><a href="https://flask.palletsprojects.com/en/2.0.x/config/#configuring-from-python-files">Configuring from Python Files</a></li>
+</ul>
+<p>After going deep into these, I'll attempt to walkthrough everything I learned.</p>
+<p>As I mentioned in the last post, the crucial entry-point into the Flask application is the <code>create_app()</code> function from <code>superset/superset/app.py</code>. Here's the entire function definition:</p>
+<pre class="codehilite"><code>def create_app() -&gt; Flask:
+    app = SupersetApp(__name__)
+
+    try:
+        # Allow user to override our config completely
+        config_module = os.environ.get(&quot;SUPERSET_CONFIG&quot;, &quot;superset.config&quot;)
+        app.config.from_object(config_module)
+
+        app_initializer = app.config.get(&quot;APP_INITIALIZER&quot;, SupersetAppInitializer)(app)
+        app_initializer.init_app()
+
+        return app
+
+    # Make sure that bootstrap errors ALWAYS get logged
+    except Exception as ex:
+        logger.exception(&quot;Failed to create app&quot;)
+        raise ex
+</code></pre>
+
+<p>Within <code>create_app()</code>, the following line of code defines what <code>current_app</code> refers to: </p>
+<pre class="codehilite"><code>app = SupersetApp(__name__)
+</code></pre>
+
+<p>The <code>current_app</code> variable acts as a global variable for different parts of your application to reference &amp; use. The following line of code retrieves information from the <code>SUPERSET_CONFIG</code> environment variable (using <code>os.environ.get()</code>) and defaults to <code>superset.config</code> if not found:</p>
+<pre class="codehilite"><code>config_module = os.environ.get(&quot;SUPERSET_CONFIG&quot;, &quot;superset.config&quot;)
+</code></pre>
+
+<p>Then, the configuration information is loaded and attached to the <code>app</code> object (elsewhere in the application it would be referenced as <code>current_app</code>).</p>
+<pre class="codehilite"><code>app.config.from_object(config_module)
+</code></pre>
+
+<p>All of the information so far suggests that the <code>SQLALCHEMY_EXAMPLES_URI</code> value is meant to be configured, which makes sense! </p>
+<ul>
+<li>By default in a native Superset installation, the SQLite database in my home directory is used. </li>
+<li>But within the Docker Compose image for Superset, the included Postgres database is used instead.</li>
+</ul>
+<p>There's still SO much I don't understand about Flask, but I need to do a separate, multi-day deep dive into that web framework. I want to balance breadth with depth here and it may be time to move on with the cursory understanding I have.</p>
+<blockquote>
+<p>Note to self: Go through <a href="https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-xv-a-better-application-structure">Flask mega-tutorial</a>, which seems to be consistently recommended by people online!</p>
+</blockquote>
+<h3>Examples Database</h3>
+<p>I want to come back for air, and circle back to how the World Health dashboard is loaded into the Superset metadata database. I want to understand this function better, which is called from the <code>load_world_bank_health_n_pop()</code> function in <code>world_bank.py</code>:</p>
+<pre class="codehilite"><code>def get_example_database() -&gt; &quot;Database&quot;:
+    db_uri = (
+        current_app.config.get(&quot;SQLALCHEMY_EXAMPLES_URI&quot;)
+        or current_app.config[&quot;SQLALCHEMY_DATABASE_URI&quot;]
+    )
+    return get_or_create_db(&quot;examples&quot;, db_uri)
+</code></pre>
+
+<p>The first clause looks interesting:</p>
+<pre class="codehilite"><code>db_uri = (
+        current_app.config.get(&quot;SQLALCHEMY_EXAMPLES_URI&quot;)
+        or current_app.config[&quot;SQLALCHEMY_DATABASE_URI&quot;]
+    )
+</code></pre>
+
+<p>This code is attempting to look up the database URI based on the app's configuration settings. We know that <code>current_app.config.get()</code> looks up values from <code>superset/superset/config.py</code>. At 1337 lines of code, the <code>config.py</code> file is massive. It contains code mostly assigning values to all-upper-case variable names. Here's an example:</p>
+<pre class="codehilite"><code>SQLALCHEMY_EXAMPLES_URI = None
+</code></pre>
+
+<p>Here's a walkthrough of how <code>db_uri</code> is calculated:</p>
+<ul>
+<li>The first clause is attempting to find a truthy value, between <code>SQLALCHEMY_EXAMPLES_URI</code> and <code>SQLALCHEMY_DATABASE_URI</code>. </li>
+<li>Because by default <code>SQLALCHEMY_EXAMPLES_URI</code> is set to <code>None</code>, the value for <code>SQLALCHEMY_DATABASE_URI</code> is then looked up.</li>
+<li>By default, <code>SQLALCHEMY_DATABASE_URI</code> is assigned to evaluate: <code>"sqlite:///" + os.path.join(DATA_DIR, "superset.db")</code></li>
+</ul>
+<p>Now we're getting somewhere! The <code>sqlite:///</code> and <code>"superset.db"</code> parts <em>smells</em> a lot like the location of the sqlite metadata database that lives in my home directory that I dug up in <a href="/apache-superset-from-scratch-2021.html#day-2">my Day 2 post</a>:</p>
+<pre class="codehilite"><code>cat ~/.superset/superset.db
+</code></pre>
+
+<p>But what's this <code>DATA_DIR</code> value and how is it computed? I did a quick search within <code>superset/superset/config.py</code> and the first instance of <code>DATA_DIR</code> is referenced here:</p>
+<pre class="codehilite"><code>if &quot;SUPERSET_HOME&quot; in os.environ:
+    DATA_DIR = os.environ[&quot;SUPERSET_HOME&quot;]
+else:
+    DATA_DIR = os.path.join(os.path.expanduser(&quot;~&quot;), &quot;.superset&quot;)
+</code></pre>
+
+<p>Because I didn't specifically set <code>SUPERSET_HOME</code> in my environment variables, then the second code path is being evaluated instead:</p>
+<pre class="codehilite"><code>DATA_DIR = os.path.join(os.path.expanduser(&quot;~&quot;), &quot;.superset&quot;)
+</code></pre>
+
+<p>I quickly ran this in a new Python shell and the result mapped exactly to the <code>.superset/</code> folder within my home directory:</p>
+<p><img alt="Data Dir" src="/images/data_dir.png" /></p>
+<p>This means that <code>SQLALCHEMY_DATABASE_URI</code> points to my metadata database, as expected. Progress!</p>
+<p>Finally, this means that the <code>get_example_database()</code> function will return the location to my sqlite database or it will create it if it doesn't exist (as the name <code>get_or_create_db()</code> suggests):</p>
+<pre class="codehilite"><code>    return get_or_create_db(&quot;examples&quot;, db_uri)
+</code></pre>
+
+<p>The return value of <code>utils.get_example_database()</code> is assigned to the <code>database</code> variable.</p>
+<h3>Superset Shell</h3>
+<p>While reading function definitions is great, the only way to learn technical concepts is getting your hands dirty and actually running code yourself. </p>
+<p>What's the best way to actually accomplish this though, while having the application lifecycle state loaded for me to interact with?</p>
+<p>Some searching online led me to this <a href="https://flask.palletsprojects.com/en/2.0.x/cli/#open-a-shell">page in the Flask docs</a>, which mentions the following:</p>
+<blockquote>
+<p>To explore the data in your application, you can start an interactive Python shell with the shell command. An application context will be active, and the app instance will be imported.</p>
+</blockquote>
+<p>I also know that Superset extends many of the underlying Flask metaphors and I remember seeing <code>superset shell</code> listed when running the Superset CLI:</p>
+<pre class="codehilite"><code>...
+run                       Run a development server.
+set-database-uri          Updates a database connection URI
+shell                     Run a shell in the app context.
+sync-tags                 Rebuilds special tags (owner, type, favorited
+...
+</code></pre>
+
+<p>I'm going to try this out:</p>
+<pre class="codehilite"><code>superset shell
+</code></pre>
+
+<p>Excellent! I now have a shell environment with the Superset App context loaded in:</p>
+<p><img alt="Superset Shell" src="/images/superset_shell.png" /></p>
+<h3>Next Steps</h3>
+<p>I've run out of time for the day and will end here. Next, I want to step through all of the function calls in the World Health dashboard example using the Superset shell.</p>
+<h2 id="day-6">Day 6 (Database Class)</h2>
+
+<p>I ended Day 5 with the knowledge of the Superset shell and a hunch that it might be a better tool for understanding the different code paths for how an example is loaded.</p>
+<p>Now I'm going to try running some commands to begin emulating what the app is doing when loading an example. First things first, let's run the <code>utils.get_example_database()</code> function call:</p>
+<pre class="codehilite"><code>&gt;&gt;&gt; from superset.utils import core as utils
+&gt;&gt;&gt; database = utils.get_example_database()
+&gt;&gt;&gt; database
+examples
+</code></pre>
+
+<p>Interesting. Superset returns the string value "examples". This is likely just the string representation of the returned "Database" object. We know that the examples database in our Superset installation lives in my home directory, as a SQLite file. So running the next command within the <code>load_world_bank_health_n_pop()</code> function should give us that information:</p>
+<pre class="codehilite"><code>&gt;&gt;&gt; engine = database.get_sqla_engine()
+&gt;&gt;&gt; engine
+Engine(sqlite:////Users/srinik/.superset/superset.db)
+</code></pre>
+
+<p>Success! </p>
+<h3>The Superset Database Class</h3>
+<p>Next, I want to better understand the returned <code>database</code> object. The class for Database is defined in  <code>superset/superset/models/core.py</code>:</p>
+<pre class="codehilite"><code>class Database(
+    Model, AuditMixinNullable, ImportExportMixin
+):  # pylint: disable=too-many-public-methods
+
+    &quot;&quot;&quot;An ORM object that stores Database related information&quot;&quot;&quot;
+
+    __tablename__ = &quot;dbs&quot;
+    type = &quot;table&quot;
+    __table_args__ = (UniqueConstraint(&quot;database_name&quot;),)
+
+    id = Column(Integer, primary_key=True)
+    verbose_name = Column(String(250), unique=True)
+    # short unique name, used in permissions
+    database_name = Column(String(250), unique=True, nullable=False)
+    ...
+</code></pre>
+
+<p>This is the same file that has the model definition for the CSSTemplate class, as I stumbled into earlier in this series! At the top of <code>core.py</code> is the following text:</p>
+<blockquote>
+<p>A collection of ORM sqlalchemy models for Superset</p>
+</blockquote>
+<p>This file contains the class definitions for the following models:</p>
+<ul>
+<li>Url</li>
+<li>KeyValue</li>
+<li>CssTemplate</li>
+<li>ConfigurationMethod</li>
+<li>Database</li>
+<li>Log</li>
+<li>FavStarClassName</li>
+<li>FavStar</li>
+</ul>
+<p>Let's dive deeper into the Database class!</p>
+<p><strong>Columns / Fields</strong></p>
+<p>The Database class defined in <code>core.py</code> maps to the <strong>"dbs"</strong> table in the metadata database, as suggested by this line of code:</p>
+<pre class="codehilite"><code>__tablename__ = &quot;dbs&quot;
+</code></pre>
+
+<p>What other columns are defined?</p>
+<ul>
+<li><code>id</code>: integer, primary key</li>
+<li><code>verbose_name</code>: string, to specify a more human-friendly name?</li>
+<li><code>database_name</code>: string, name of the database</li>
+<li><code>sqlalchemy_uri</code>: string, likely the URI sent to the underlying database driver to connect</li>
+<li><code>password</code>: salted password</li>
+<li><code>cache_timeout</code>: integer, corresponding to the cache timeout in seconds at the database level</li>
+<li><code>select_as_create_table_as</code>: boolean, not sure what this does</li>
+<li><code>expose_in_sqllab</code>: boolean, should this db be exposed in SQL Lab?</li>
+<li><code>configuration_method</code>: string, type of form used to configure?</li>
+<li>several <code>allow_</code> fields around async, file upload, CTAS, CVAS, DML, multi schema metadata fetch, and other user-configurable features</li>
+<li>several <code>extra_</code> fields around encryption, fields, etc.</li>
+<li><em>and more</em></li>
+</ul>
+<p><strong>String Representation</strong></p>
+<p>We know from our earlier exploration that running <code>print()</code> on a Superset Database object returns the database name. This aligns with the <code>__repr__()</code> definition for this model!</p>
+<pre class="codehilite"><code>def __repr__(self) -&gt; str:
+        return self.name
+</code></pre>
+
+<p><strong>Name Attribute</strong></p>
+<p>If I call the <code>.name</code> attribute on a Database object, the following is evaluated:</p>
+<pre class="codehilite"><code>def name(self) -&gt; str:
+    return self.verbose_name if self.verbose_name else self.database_name
+</code></pre>
+
+<p>Interesting -- now we know how <code>verbose_name</code> is used! It's the preference for showing to humans, and <code>database_name</code> is the backup value displayed.</p>
+<p><strong>Data Attribute</strong></p>
+<p>What's next? The <code>.data</code> attribute looks interesting:</p>
+<pre class="codehilite"><code>@property
+    def data(self) -&gt; Dict[str, Any]:
+</code></pre>
+
+<p>I want to run this for my Examples SQLite database and see what's returned:</p>
+<pre class="codehilite"><code>&gt;&gt;&gt; database.data
+    {'id': 1, 
+    'name': 'examples', 
+    'backend': 'sqlite', 
+    'configuration_method': 'sqlalchemy_form', 
+    'allow_multi_schema_metadata_fetch': False, 
+    'allows_subquery': True, 
+    'allows_cost_estimate': False, 
+    'allows_virtual_table_explore': True, 
+    'explore_database_id': 1, 
+    'parameters': {}, 
+    'parameters_schema': {}}
+</code></pre>
+
+<p><strong>Reserved Words</strong></p>
+<p>Neat! I can also retrieve the reserved words for the database:</p>
+<pre class="codehilite"><code>&gt;&gt;&gt; database.get_reserved_words()
+{'right', 'select', 'check', 'having', 'virtual', 'before', 'fail', 'conflict', 'current_timestamp', 'escape', 'full', 'case', 'references', 'drop', 'begin', 'cast', 'view', 'of', 'insert', 'on', 'outer', 'cascade', 'in', 'attach', 'inner', 'vacuum', 'deferred', 'add', 'for', 'temporary', 'union', 'update', 'offset', 'as', 'where', 'transaction', 'explain', 'indexed', 'group', 'limit', 'to', 'pragma', 'unique', 'raise', 'initially', 'distinct', 'column', 'asc', 'notnull', 'null', 'between', 'rollback', 'end', 'when', 'deferrable', 'detach', 'match', 'all', 'temp', 'isnull', 'join', 'trigger', 'query', 'from', 'autoincrement', 'ignore', 'after', 'table', 'order', 'alter', 'reindex', 'is', 'intersect', 'primary', 'then', 'and', 'set', 'like', 'index', 'by', 'default', 'else', 'rename', 'plan', 'except', 'row', 'instead', 'natural', 'analyze', 'foreign', 'database', 'if', 'current_time', 'glob', 'current_date', 'cross', 'key', 'values', 'into', 'constraint', 'exists', 'left', 'delete', 'each', 'or', 'false', 'commit', 'exclusive', 'immediate', 'restrict', 'not', 'create', 'desc', 'true', 'using', 'replace', 'collate'}
+</code></pre>
+
+<p><strong>Previewing Raw Data</strong></p>
+<p>I want to peek at the data in my SQLite database. The <a href="https://sqlitebrowser.org/dl/">DB Browser for SQLite app</a> on Mac is a good option for this. Better yet, once installed, I can use my terminal to pass the app the file location of my sqlite DB!</p>
+<pre class="codehilite"><code>open -a &quot;DB Browser for SQLite&quot; /Users/srinik/.superset/superset.db
+</code></pre>
+
+<p>And voila!</p>
+<p><img alt="DB Browser" src="/images/db_browser.png" /></p>
+<p>Let's preview the <code>dbs</code> table (which corresponds to the Database model).</p>
+<p><img alt="DB Browser DBs" src="/images/db_browser_dbs.png" /></p>
+<p>It's nice to see all of the columns reflected here from the Database model.</p>
+<h3>World Health Dashboard: Examples Database</h3>
+<p>Let's revisit the <code>load_world_bank_health_n_pop()</code> function that loads the World Health Dashboard.</p>
+<pre class="codehilite"><code>def load_world_bank_health_n_pop(  # pylint: disable=too-many-locals, too-many-statements
+    only_metadata: bool = False, force: bool = False, sample: bool = False,
+) -&gt; None:
+    &quot;&quot;&quot;Loads the world bank health dataset, slices and a dashboard&quot;&quot;&quot;
+
+    tbl_name = &quot;wb_health_population&quot;
+    database = utils.get_example_database()
+    engine = database.get_sqla_engine()
+    schema = inspect(engine).default_schema_name
+    table_exists = database.has_table_by_name(tbl_name)
+</code></pre>
+
+<p>This code does the following:</p>
+<ul>
+<li>Sets the table name to <code>wb_health_population</code></li>
+<li>Uses utility functions to fetch the Database object corresponding to the <code>examples</code> database (or creates it if it isn't there)</li>
+<li>Retrieves the SQLAlchemy engine for this specific database flavor (from the <code>db_engine_specs</code> folder) so queries can be made to the database.</li>
+<li>Retrieves the default schema name if it exists.</li>
+<li>Confirms if the <code>wb_health_population</code> table exists or not.</li>
+</ul>
+<h3>World Health Dashboard: Pandas Transformation</h3>
+<p>As someone who's spent years writing pandas code, the next part of of the <code>load_world_bank_health_n_pop()</code> function looks very familiar:</p>
+<pre class="codehilite"><code>if not only_metadata and (not table_exists or force):
+        data = get_example_data(&quot;countries.json.gz&quot;)
+        pdf = pd.read_json(data)
+        pdf.columns = [col.replace(&quot;.&quot;, &quot;_&quot;) for col in pdf.columns]
+        if database.backend == &quot;presto&quot;:
+            pdf.year = pd.to_datetime(pdf.year)
+            pdf.year = pdf.year.dt.strftime(&quot;%Y-%m-%d %H:%M%:%S&quot;)
+        else:
+            pdf.year = pd.to_datetime(pdf.year)
+        pdf = pdf.head(100) if sample else pdf
+
+        pdf.to_sql(
+            tbl_name,
+            engine,
+            schema=schema,
+            if_exists=&quot;replace&quot;,
+            chunksize=50,
+            dtype={
+                # TODO(bkyryliuk): use TIMESTAMP type for presto
+                &quot;year&quot;: DateTime if database.backend != &quot;presto&quot; else String(255),
+                &quot;country_code&quot;: String(3),
+                &quot;country_name&quot;: String(255),
+                &quot;region&quot;: String(255),
+            },
+            method=&quot;multi&quot;,
+            index=False,
+        )
+</code></pre>
+
+<p>Here's my breakdown of the code:</p>
+<ul>
+<li><code>data = get_example_data("countries.json.gz")</code>:<ul>
+<li><code>get_example_data()</code> is a helper function that fetches the gzipped JSON dataset for this example from <code>https://github.com/apache-superset/examples-data/blob/master/countries.json.gz</code></li>
+</ul>
+</li>
+<li><code>pdf = pd.read_json(data)</code>: <ul>
+<li>read in JSON as a pandas dataframe</li>
+</ul>
+</li>
+<li><code>pdf.columns = [col.replace(".", "_") for col in pdf.columns]</code>: <ul>
+<li>replace any periods with <code>_</code>, so the database is happy</li>
+</ul>
+</li>
+<li><code>if database.backend == "presto":</code> if the examples Database object points to a Presto database, do some specific datetime conversion for Presto.</li>
+<li><code>pdf.to_sql()</code>: use the <code>pandas.DataFrame.to_sql()</code> method to generate a SQLAlchemy 'query' to insert data into the database.</li>
+</ul>
+<p>Phew! That's it for today. Tomorrow, I want to finish understanding how the Superset-specific metadata is loaded.</p>
+<h2 id="day-7">Day 7 (Metadata for Examples)</h2>
+
+<p>I ended Day 6 with a good understanding of the first half of the <code>load_world_bank_health_n_pop()</code> function, which loads the World Health dashboard example. Today, I'm hoping to understand the rest of the function if possible.</p>
+<p>The next line of code is:</p>
+<pre class="codehilite"><code>table = get_table_connector_registry()
+</code></pre>
+
+<p>The <code>get_table_connector_registry()</code> function seems to be defined in <code>superset/superset/examples/helpers.py</code>. The function definition is very simple:</p>
+<pre class="codehilite"><code>def get_table_connector_registry() -&gt; Any:
+    return ConnectorRegistry.sources[&quot;table&quot;]
+</code></pre>
+
+<h3>Helper Functions for Superset Examples</h3>
+<p>This function is so simple, I'm even wondering why this function needs to exist. </p>
+<blockquote>
+<p>Why can't <code>ConnectorRegistry.sources["table"]</code> just be defined directly in the <code>load_world_bank_health_n_pop()</code> function within <code>world_bank.py</code>?</p>
+</blockquote>
+<p>Let me take a peek at the rest of the functions in <code>superset/examples/helpers.py</code> to try to gain more context:</p>
+<ul>
+<li><code>get_table_connector_registry()</code>: yet to be determined!</li>
+<li><code>get_examples_folder()</code>: returns exact path to where example datasets, dashboards, etc are stored.</li>
+<li><code>update_slice_ids(layout_dict: Dict[Any, Any], slices: List[Slice])</code>: does some type of sorting of slices</li>
+<li><code>merge_slice(slc: Slice)</code>: deletes existing Slice and creates new one in its place</li>
+<li><code>get_slice_json(defaults: Dict[Any, Any], **kwargs: Any)</code>: unclear! But something around JSON representation of Slice objects.</li>
+<li><code>get_example_data(filepath: str, is_gzip: bool = True, make_bytes: bool = False)</code>: common utility function for fetching JSON dataset from a URL and reading in the bytes (we saw this earlier!)</li>
+</ul>
+<p>These all smell like functions that any example-loading script can benefit from and re-use. So it makes sense that they're all defined here for common use.</p>
+<h3>Why ConnectorRegistry?</h3>
+<p>ConnectorRegistry sounds interesting, as it sounds like some type of registry that maintains the available database connectors in the current Superset installation. This lead me to the following question:</p>
+<blockquote>
+<p>Why not store the available connectors in the metadata database?</p>
+</blockquote>
+<p>My hunch is that this adds extra friction, slows down the development process, and doesn't add too much. </p>
+<p>You can imagine a Superset contributor having multiple local git branches and wanting to quickly switch between them. In my past life as a backend engineer, I've personally experienced the pains of database state causing issues between versions of the same software.</p>
+<p>For connectors, the <em>state</em> itself is likely defined entirely in the code itself. </p>
+<ul>
+<li>The connector libraries are either defined in code that lives in the source tree, or they aren't!</li>
+<li>The <code>db_engine_spec</code> for a given database either exists in the source tree, or it doesn't!</li>
+</ul>
+<p>Let's move on to the implementation for ConnectorRegistry.</p>
+<h3>Connector Registry</h3>
+<p>Where is the ConnectorRegistry class defined? The comment at the top for the class definition is:</p>
+<pre class="codehilite"><code>Central Registry for all available datasource engines
+</code></pre>
+
+<p>In <code>superset/superset/connectors/connector_registry.py</code>, the ConnectorRegistry class is defined with the following class methods.</p>
+<ul>
+<li><code>register_sources()</code></li>
+<li><code>get_datasource()</code></li>
+<li><code>get_all_datasources()</code></li>
+<li><code>get_datasource_by_id()</code></li>
+<li><code>get_datasource_by_name()</code></li>
+<li><code>query_datasources_by_permissions()</code></li>
+<li><code>get_eager_datasource()</code></li>
+<li><code>query_datasources_by_name()</code></li>
+</ul>
+<p>Because the ConnectorRegistry class acts as a source of truth, it can just have class methods that other parts of the codebase can call to look up information. It won't ever be instantiated into individual objects.</p>
+<p>The <code>register_sources()</code> class method piqued my interest, as it probably <em>registers</em> new data sources. When is this actually called though? It's only called in <code>superset/superset/initialization/__init__.py</code>:</p>
+<pre class="codehilite"><code>def configure_data_sources(self) -&gt; None:
+    # Registering sources
+    module_datasource_map = self.config[&quot;DEFAULT_MODULE_DS_MAP&quot;]
+    module_datasource_map.update(self.config[&quot;ADDITIONAL_MODULE_DS_MAP&quot;])
+    ConnectorRegistry.register_sources(module_datasource_map)
+</code></pre>
+
+<p>This makes sense. The possible data source engines only need to be registered during the flask app initialization.</p>
+<p>What is the default value set to <code>"DEFAULT_MODULE_DS_MAP</code>?</p>
+<pre class="codehilite"><code>DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&quot;superset.connectors.sqla.models&quot;, [&quot;SqlaTable&quot;]),
+        (&quot;superset.connectors.druid.models&quot;, [&quot;DruidDatasource&quot;]),
+    ]
+</code></pre>
+
+<p>What is the default value set to <code>"ADDITIONAL_MODULE_DS_MAP"</code>?</p>
+<pre class="codehilite"><code>ADDITIONAL_MODULE_DS_MAP: Dict[str, List[str]] = {}
+</code></pre>
+
+<p>So this code path essentially returns an Ordered Dictionary of values. Interesting.</p>
+<p>Let's circle back to <code>get_table_connector_registry()</code>, which essentially boils down to:</p>
+<pre class="codehilite"><code>ConnectorRegistry.sources[&quot;table&quot;]
+</code></pre>
+
+<p>This code references the following class variable:</p>
+<pre class="codehilite"><code>class ConnectorRegistry:
+    &quot;&quot;&quot;Central Registry for all available datasource engines&quot;&quot;&quot;
+
+    sources: Dict[str, Type[&quot;BaseDatasource&quot;]] = {}
+</code></pre>
+
+<p>What does this value look like for our current Superset instance?</p>
+<pre class="codehilite"><code>&gt;&gt;&gt; ConnectorRegistry.sources
+{'table': &lt;class 'superset.connectors.sqla.models.SqlaTable'&gt;, 'druid': &lt;class 'superset.connectors.druid.models.DruidDatasource'&gt;}
+</code></pre>
+
+<p>From Superset's stand point, databases are either:</p>
+<ul>
+<li>a Druid data source, connected using the legacy Druid connector, in which case the datasets are JSON (I think)</li>
+<li>a SQAlchemy data source, in which case the datasets are all tables</li>
+</ul>
+<p>The returned dictionary matches the default value set to <code>"DEFAULT_MODULE_DS_MAP</code>:</p>
+<pre class="codehilite"><code>DEFAULT_MODULE_DS_MAP = OrderedDict(
+    [
+        (&quot;superset.connectors.sqla.models&quot;, [&quot;SqlaTable&quot;]),
+        (&quot;superset.connectors.druid.models&quot;, [&quot;DruidDatasource&quot;]),
+    ]
+</code></pre>
+
+<p>This <em>seems</em> like a LOT of steps and code just to return a tiny dictionary of values!</p>
+<blockquote>
+<p>ConnectorRegistry doesn't even seem to return the actual <em>database connectors</em> that are registered. This is a bit weird!</p>
+</blockquote>
+<p>Interestingly, the SqlaTable class does warrant further investigation. It seems to be an ORM model / wrapper for the SQLAlchemy table objects with some Superset-specific niceities.</p>
+<h3>Searching for a Table</h3>
+<p>After returning the SQLAlchemy compatible module name and class using the ConnectorRegistry, here's the next line of code:</p>
+<pre class="codehilite"><code>tbl = db.session.query(table).filter_by(table_name=tbl_name).first()
+</code></pre>
+
+<p>This code uses SQLAlchemy syntax to generate a SQL query that returns the "wb_health_population" table. It handles multiple results and focuses on just the ones from SQLAlchemy databases that Superset is aware of. Specifically, it returns a SqlaTable object and assigns to <code>tbl</code>.</p>
+<p>The next code fragment creates the table if it doesn't exist:</p>
+<pre class="codehilite"><code>if not tbl:
+    tbl = table(table_name=tbl_name, schema=schema)
+</code></pre>
+
+<p>Next up, this code reads in "countries.md", which contains information on the World Health dataset. Then, it attaches this information to the description column for the SqlaTable object:</p>
+<pre class="codehilite"><code>tbl.description = utils.readfile(
+    os.path.join(get_examples_folder(), &quot;countries.md&quot;)
+)
+</code></pre>
+
+<p>The next three lines of code set values to three more columns within this SqlaTable object:</p>
+<pre class="codehilite"><code>tbl.main_dttm_col = &quot;year&quot;
+tbl.database = database
+tbl.filter_select_enabled = True
+</code></pre>
+
+<h3>Defining Metrics for World Health Dashboard</h3>
+<p>The raw metrics that need to be created to power this Superset dashboard are represented as the following strings:</p>
+<pre class="codehilite"><code>metrics = [
+    &quot;sum__SP_POP_TOTL&quot;,
+    &quot;sum__SH_DYN_AIDS&quot;,
+    &quot;sum__SH_DYN_AIDS&quot;,
+    &quot;sum__SP_RUR_TOTL_ZS&quot;,
+    &quot;sum__SP_DYN_LE00_IN&quot;,
+    &quot;sum__SP_RUR_TOTL&quot;,
+]
+</code></pre>
+
+<p>The next block of code does the following for each metric-string:</p>
+<ul>
+<li>searches all of the <code>tbl</code> object's <code>metrics</code> to check if it already exists</li>
+<li>slices the metric-string to extract first 3 characters (e.g. "sum")</li>
+<li>uses SQLAlchemy to search for the column that will be aggregated</li>
+<li>appends the metric to <code>tbl.metrics</code>, using the <code>SqlMetric</code> class</li>
+</ul>
+<pre class="codehilite"><code>for metric in metrics:
+    if not any(col.metric_name == metric for col in tbl.metrics):
+        aggr_func = metric[:3]
+        col = str(column(metric[5:]).compile(db.engine))
+        tbl.metrics.append(
+            SqlMetric(metric_name=metric, expression=f&quot;{aggr_func}({col})&quot;)
+        )
+</code></pre>
+
+<p>The next three lines seem to commit these changes to the database and re-fetch the metadata:</p>
+<pre class="codehilite"><code>db.session.merge(tbl)
+db.session.commit()
+tbl.fetch_metadata()
+</code></pre>
+
+<p>We're nearly done understanding the World Health dashboard example! But I've run out of time for today. I'll save this for Day 8!</p></div>
+
+		</main>
+    <footer class="site-footer"><p>&copy; 2026 Srini Kadamati</p></footer>
+	</div><!-- container -->
+
+	
+<!-- Legacy Analytics setting preserved; set GOOGLE_ANALYTICS to your GA4 G- ID. -->
+<script>window.GoogleAnalyticsObject='ga';window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;ga('create',"UA-215861180-1",'auto');ga('send','pageview');</script>
+<script async src="https://www.google-analytics.com/analytics.js"></script>
+
+
+</body> <!-- End body -->
+
+<!-- JavaScript
+=================================================== -->
+<script type="text/javascript" async src="//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+</html>
