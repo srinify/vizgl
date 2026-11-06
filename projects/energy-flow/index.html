@@ -1728,8 +1728,8 @@
         energy.className = "inspectenergy";
         energy.textContent = node.value.toFixed(2) + " Q BTU";
         energy.title = "Energy in quadrillion BTU";
-        title.append(badge, document.createTextNode(" "), energy,
-          document.createTextNode(" · "), name);
+        title.append(badge, document.createTextNode(" "), name,
+          document.createTextNode(" · "), energy);
         for (const [side, links, other] of [
           ["incoming", node.ins, "s"],
           ["outgoing", node.outs, "t"],
