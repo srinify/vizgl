@@ -528,6 +528,8 @@
         .inspector .flowrow { padding: 2px 0; }
         .inspector .flowlist { max-height: none; overflow: visible; }
       }
+      #nodetitle .levelbadge { margin-left: 0; }
+      .inspectenergy { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
     </style>
   </head>
   <body>
@@ -569,9 +571,7 @@
               ></div>
             </div>
           </div>
-          <button id="find">Find</button
-          ><button id="clear">Clear selection</button
-          >
+          <button id="find">Find</button>
         </div>
         <div class="canvasbox">
           <canvas
@@ -1724,7 +1724,12 @@
         badge.className = "levelbadge";
         badge.textContent = node.layer + 1;
         badge.setAttribute("aria-label", "Level " + (node.layer + 1));
-        title.append(name, document.createTextNode(" "), badge);
+        const energy = document.createElement("span");
+        energy.className = "inspectenergy";
+        energy.textContent = node.value.toFixed(2) + " Q BTU";
+        energy.title = "Energy in quadrillion BTU";
+        title.append(badge, document.createTextNode(" "), energy,
+          document.createTextNode(" · "), name);
         for (const [side, links, other] of [
           ["incoming", node.ins, "s"],
           ["outgoing", node.outs, "t"],
@@ -1971,7 +1976,6 @@
           if (!e.target.closest(".searchbox") && e.target.id !== "find")
             closeSearch();
         });
-        getElement("clear").onclick = clearSelection;
         getElement("close").onclick = clearSelection;
         getElement("minimize").onclick = () =>
           setMinimized(
