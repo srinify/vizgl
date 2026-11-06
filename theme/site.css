@@ -84,3 +84,13 @@ main > :last-child { margin-bottom: 0; }
 .article-body > :first-child { margin-top: 0; }
 
 .posts-page main { max-width: none; }
+
+.home-projects { margin-top: 52px; }
+.home-projects > .posts-heading { margin: 0 0 12px; }
+.project-entry { padding: 24px 0; }
+.project-entry + .project-entry { border-top: 1px solid var(--line); }
+.project-entry h2 { font-size: 20.8px; margin: 0 0 16px; }
+.project-entry h2 a { text-decoration: none; }
+.project-entry h2 a:hover { text-decoration: underline; }
+.project-entry > :last-child { margin-bottom: 0; }
+.section-link { font-size: 14px; font-weight: 600; }
