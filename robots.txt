@@ -1,2 +1,4 @@
 User-agent: *
 Disallow: /drafts/
+
+Sitemap: https://www.viz.gl/sitemap.xml
