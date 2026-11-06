@@ -100,7 +100,7 @@
         top: 0;
         z-index: 6;
         display: flex;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 10px;
         align-items: center;
         padding: 14px 18px;
@@ -149,6 +149,7 @@
       .spacer {
         flex: 1;
       }
+      .toolbar #find { flex: 0 0 auto; white-space: nowrap; }
       /* Chart and tooltip */
       .viewhead {
         padding: 16px 20px;
@@ -396,6 +397,7 @@
       /* Search combobox and inline level badges */
       .searchbox {
         position: relative;
+        flex: 0 1 520px;
         width: 520px;
         max-width: 100%;
         min-width: 0;
@@ -482,7 +484,8 @@
       }
       @media (max-width: 700px) {
         .searchbox {
-          width: 100%;
+          flex: 1 1 0;
+          width: auto;
         }
         .searchpopup {
           width: 100%;
@@ -530,6 +533,21 @@
       }
       #nodetitle .levelbadge { margin-left: 0; }
       .inspectenergy { font-size: 12px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+      .beta-label {
+        display: inline-block;
+        vertical-align: middle;
+        margin-left: 6px;
+        padding: 2px 8px;
+        border: 1px solid #bfc3b5;
+        border-radius: 999px;
+        background: #eeeee7;
+        color: #62645e;
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.5;
+        letter-spacing: 0;
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body>
@@ -537,7 +555,7 @@
       <nav class="breadcrumbs" aria-label="Breadcrumb">
         <a href="/">Home</a><span aria-hidden="true">/</span><a href="/projects/">Projects</a>
       </nav>
-      <h1>Visualizing the Flow of Energy Through the U.S. Economy</h1>
+      <h1>Visualizing the Flow of Energy Through the U.S. Economy <span class="beta-label">Beta</span></h1>
       <p class="intro">
         Every layer spans 100% of its displayed energy, including accumulated
         waste and energy services. Follow the connections from top to bottom.
