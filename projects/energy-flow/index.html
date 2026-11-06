@@ -99,9 +99,10 @@
         position: sticky;
         top: 0;
         z-index: 6;
-        display: flex;
-        flex-wrap: nowrap;
-        gap: 10px;
+        display: grid;
+        grid-template-columns: minmax(0, 520px) auto;
+        justify-content: start;
+        gap: 8px 10px;
         align-items: center;
         padding: 14px 18px;
         background: var(--paper);
@@ -149,7 +150,7 @@
       .spacer {
         flex: 1;
       }
-      .toolbar #find { flex: 0 0 auto; white-space: nowrap; }
+      .toolbar #find { justify-self: start; width: auto; padding: 8px 12px; white-space: nowrap; }
       /* Chart and tooltip */
       .viewhead {
         padding: 16px 20px;
@@ -548,6 +549,21 @@
         letter-spacing: 0;
         white-space: nowrap;
       }
+      .question-guide { grid-column: 1 / -1; min-width: 0; padding-top: 4px; padding-bottom: 4px; }
+      .question-buttons { display: flex; align-items: center; gap: 8px; }
+      .question-buttons button { min-width: 40px; padding: 6px 10px; font-size: 12px; line-height: 1.4; border-radius: 5px; }
+      .question-buttons button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+      #question-toggle { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; padding: 4px; border-color: transparent; background: transparent; }
+      #question-toggle span { display: block; }
+      #question-toggle[aria-expanded="false"] span { transform: rotate(-90deg); }
+      #guided-question { margin: 10px 0 0; font-size: 13px; line-height: 1.5; }
+      @media (max-width: 700px) {
+        .toolbar { grid-template-columns: minmax(0, 1fr) auto; justify-content: stretch; padding: 12px; }
+      }
+      @media (pointer: coarse) {
+        .question-buttons button { min-height: 40px; }
+        #question-toggle { min-width: 36px; }
+      }
     </style>
   </head>
   <body>
@@ -590,6 +606,17 @@
             </div>
           </div>
           <button id="find">Find</button>
+          <div class="question-guide">
+            <div class="question-buttons" role="group" aria-label="Exploration questions">
+              <button id="question-toggle" type="button" aria-label="Collapse question" aria-expanded="true" aria-controls="guided-question"><span aria-hidden="true">▾</span></button>
+              <button id="question-1" type="button" aria-pressed="true" aria-controls="guided-question">Q1</button>
+              <button id="question-2" type="button" aria-pressed="false" aria-controls="guided-question">Q2</button>
+              <button id="question-3" type="button" aria-pressed="false" aria-controls="guided-question">Q3</button>
+              <button id="question-4" type="button" aria-pressed="false" aria-controls="guided-question">Q4</button>
+              <button id="question-5" type="button" aria-pressed="false" aria-controls="guided-question">Q5</button>
+            </div>
+            <p id="guided-question" aria-live="polite">Where does petroleum go in the U.S. energy system?</p>
+          </div>
         </div>
         <div class="canvasbox">
           <canvas
@@ -1927,8 +1954,44 @@
         resizeChart();
       }
 
+      const GUIDED_QUESTIONS = [
+        "Where does petroleum go in the U.S. energy system?",
+        "Which energy sources supply the transportation sector?",
+        "Where does energy go after it reaches a single-family home?",
+        "How does industrial energy use split between different activities?",
+        "How much energy ends up as waste versus energy services?",
+      ];
+      let selectedQuestion = 0;
+      let questionExpanded = true;
+      function renderQuestionGuide() {
+        for (let i = 0; i < GUIDED_QUESTIONS.length; i++) {
+          const button = getElement("question-" + (i + 1));
+          button.setAttribute("aria-pressed", String(i === selectedQuestion));
+          button.setAttribute("aria-label", "Q" + (i + 1) + ": " + GUIDED_QUESTIONS[i]);
+        }
+        const text = getElement("guided-question");
+        text.textContent = GUIDED_QUESTIONS[selectedQuestion];
+        text.hidden = !questionExpanded;
+        const toggle = getElement("question-toggle");
+        toggle.setAttribute("aria-expanded", String(questionExpanded));
+        toggle.setAttribute("aria-label", questionExpanded ? "Collapse question" : "Expand question");
+      }
+      function chooseGuidedQuestion(index) {
+        selectedQuestion = index;
+        questionExpanded = true;
+        renderQuestionGuide();
+      }
+
       // 11. Event bindings and startup
       function bindEvents() {
+        for (let i = 0; i < GUIDED_QUESTIONS.length; i++) {
+          getElement("question-" + (i + 1)).onclick = () => chooseGuidedQuestion(i);
+        }
+        getElement("question-toggle").onclick = () => {
+          questionExpanded = !questionExpanded;
+          renderQuestionGuide();
+        };
+        renderQuestionGuide();
         canvas.addEventListener("pointermove", (e) => {
           if (e.pointerType === "touch") return;
           state.hoverTarget = hitTest(e);
