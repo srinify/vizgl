@@ -43,9 +43,9 @@
       }
       .breadcrumbs a:hover { color: var(--ink); text-decoration: underline; }
       .breadcrumbs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-      .page-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-      .page-top .breadcrumbs { margin-bottom: 0; }
-      #help-open { width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+      .title-row { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 8px 0 10px; }
+      .title-row h1 { margin: 0; }
+      #help-open { width: 32px; height: 32px; padding: 0; border-radius: 50%; color: var(--muted); font-size: 17px; font-weight: 400; flex-shrink: 0; }
       #help-dialog { width: min(640px, calc(100% - 28px)); max-height: calc(100dvh - 40px); padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); box-shadow: 0 16px 60px #0003; }
       #help-dialog::backdrop { background: #0007; }
       .help-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
@@ -579,13 +579,13 @@
   </head>
   <body>
     <main>
-      <div class="page-top">
       <nav class="breadcrumbs" aria-label="Breadcrumb">
         <a href="/">Home</a><span aria-hidden="true">/</span><a href="/projects/">Projects</a>
       </nav>
+      <div class="title-row">
+      <h1>Visualizing the Flow of Energy Through the U.S. Economy <span class="beta-label">Beta</span></h1>
       <button id="help-open" type="button" aria-label="About this project" aria-haspopup="dialog" aria-controls="help-dialog" title="About this project">?</button>
       </div>
-      <h1>Visualizing the Flow of Energy Through the U.S. Economy <span class="beta-label">Beta</span></h1>
       <p class="intro">
         Every layer spans 100% of its displayed energy, including accumulated
         waste and energy services. Follow the connections from top to bottom.
