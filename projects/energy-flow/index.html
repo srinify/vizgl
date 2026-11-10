@@ -43,6 +43,17 @@
       }
       .breadcrumbs a:hover { color: var(--ink); text-decoration: underline; }
       .breadcrumbs a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+      .page-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      .page-top .breadcrumbs { margin-bottom: 0; }
+      #help-open { width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 20px; font-weight: 600; flex-shrink: 0; }
+      #help-dialog { width: min(640px, calc(100% - 28px)); max-height: calc(100dvh - 40px); padding: 24px; border: 1px solid var(--line); border-radius: 8px; background: var(--paper); color: var(--ink); box-shadow: 0 16px 60px #0003; }
+      #help-dialog::backdrop { background: #0007; }
+      .help-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+      .help-heading h2 { margin: 0; font-size: 20px; }
+      #help-close { flex-shrink: 0; min-width: 40px; min-height: 40px; padding: 4px 10px; font-size: 22px; }
+      #help-dialog p { margin: 18px 0 0; line-height: 1.7; }
+      #help-dialog a { color: inherit; text-underline-offset: 3px; }
+      #help-dialog a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
       /* Page structure */
       main {
         width: 100%;
@@ -568,9 +579,12 @@
   </head>
   <body>
     <main>
+      <div class="page-top">
       <nav class="breadcrumbs" aria-label="Breadcrumb">
         <a href="/">Home</a><span aria-hidden="true">/</span><a href="/projects/">Projects</a>
       </nav>
+      <button id="help-open" type="button" aria-label="About this project" aria-haspopup="dialog" aria-controls="help-dialog" title="About this project">?</button>
+      </div>
       <h1>Visualizing the Flow of Energy Through the U.S. Economy <span class="beta-label">Beta</span></h1>
       <p class="intro">
         Every layer spans 100% of its displayed energy, including accumulated
@@ -660,6 +674,14 @@
         </div>
       </section>
     </main>
+    <dialog id="help-dialog" aria-labelledby="help-title">
+      <div class="help-heading">
+        <h2 id="help-title">About this project</h2>
+        <button id="help-close" type="button" aria-label="Close project guide" autofocus>×</button>
+      </div>
+      <p>This project recreates the excellent <a href="https://appmunchies.com/v/2a36828b-2c21-423f-92cc-3d441122817d">US Energy Flow Super Sankey</a> by the Otherlab team in 2018 but incorporates heavy design inspiration from the Sankey diagram in <a href="https://history.columnar.tech/">Data: The First 50 Years</a> by the Columnar team. The <a href="https://www.otherlab.com/blog-posts/us-energy-flow-super-sankey">original stated goal</a> was to "develop an energy display system which, in less than an hour, could give an extremely busy person an understanding of the size and the complexity of our national energy dilemma."</p>
+      <p>You can read more about my personal motivation to recreate this Sankey diagram in my <a href="https://interfacingdata.substack.com/p/visualizing-us-energy-flow-an-experiment">newsletter</a>.</p>
+    </dialog>
     <div id="tooltip" role="status"></div>
     <script>
       "use strict";
@@ -1984,6 +2006,20 @@
 
       // 11. Event bindings and startup
       function bindEvents() {
+        const helpDialog = getElement("help-dialog");
+        getElement("help-open").onclick = () => {
+          closeSearch();
+          tooltip.style.display = "none";
+          helpDialog.showModal();
+        };
+        getElement("help-close").onclick = () => helpDialog.close();
+        helpDialog.addEventListener("click", (event) => {
+          const bounds = helpDialog.getBoundingClientRect();
+          if (event.target === helpDialog &&
+              (event.clientX < bounds.left || event.clientX > bounds.right ||
+               event.clientY < bounds.top || event.clientY > bounds.bottom))
+            helpDialog.close();
+        });
         for (let i = 0; i < GUIDED_QUESTIONS.length; i++) {
           getElement("question-" + (i + 1)).onclick = () => chooseGuidedQuestion(i);
         }
